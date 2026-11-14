@@ -1,5 +1,7 @@
 # DeepClear UI
 
+![DeepClear UI：左侧 deepseek / harness 点阵字标，右侧鲸鱼娘点阵人像](docs/preview.png)
+
 新会话欢迎页的点阵鲸鱼娘和 dsh 字样装饰。
 
 - 右侧：鲸鱼娘点阵人像

@@ -1,7 +1,6 @@
 {
   "meta": {
     "title": "DeepClear UI",
-    "description": "新会话欢迎页的点阵鲸鱼娘和 dsh 字样装饰。",
-    "detail": "docs/DETAIL.md"
+    "description": "点阵欢迎页 + 鲸鱼蓝强调色：新会话页里是点阵的鲸鱼娘人像与 dsh 字标，聊天里加粗文字、输入框聚焦描边和 diff 都换成鲸鱼蓝。"
   }
 }

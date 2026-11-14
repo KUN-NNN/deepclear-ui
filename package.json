@@ -1,9 +1,9 @@
 {
   "name": "deepclear-ui",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": false,
   "type": "module",
-  "description": "DeepClear UI — the dot-matrix welcome surface: a mascot portrait plus a deepseek / harness wordmark.",
+  "description": "DeepClear UI — dot-matrix welcome page and whale-blue accents for the dsh web UI.",
   "license": "MIT",
   "exports": {
     ".": "./index.js",
@@ -41,7 +41,9 @@
     "theme",
     "appearance",
     "dot-matrix",
-    "welcome-page"
+    "welcome-page",
+    "accent",
+    "diff"
   ],
   "repository": {
     "type": "git",

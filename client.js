@@ -10,10 +10,11 @@
  *
  * It also hides the stock home chrome it replaces: the headline, the brand mark,
  * and the official pixel-whale canvas. A faint `deepclear-ui` signature sits in
- * the page corner.
+ * the page corner while the home is showing.
  *
- * Everything else — whale-blue bold text, the composer focus ring, the re-inked
- * diff plates — lives in the companion bundle `deepclear-accent`.
+ * The stylesheet below also carries the accent half in the same bundle:
+ * whale-blue bold runs in chat prose, the whale-blue composer focus ring, and the
+ * re-inked diff plates. One install, one stylesheet, one place to tune.
  */
 window.__ModuleLoader__.load({
   id: 'deepclear-ui',
@@ -618,6 +619,95 @@ const CSS = `
   opacity: 0.28;
   pointer-events: none;
   user-select: none;
+}
+
+/* ------------------------------------------------------------------ accents */
+
+[data-slot="conversation.chat.flow"] :is(p, li, td, blockquote, h1, h2, h3, h4, h5, h6) :is(strong, b) {
+  color: #7aaaff;
+}
+
+/* Composer focus: the shipped 0.5px hairline turns whale blue and an inset ring
+   thickens the edge. The inset shadow follows the card radius and costs no
+   layout, and a focused draft editor is the only trigger — toolbar buttons
+   inside the card keep the resting look. */
+[data-composer-card] {
+  transition: box-shadow 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+[data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
+  --dsw-elevation-stroke-color: #7aaaff;
+  box-shadow: var(--dsw-elevation-soft), inset 0 0 0 1px #7aaaff;
+}
+
+/* Diff plates: the shipped red/green line fills become the deep-blue family and
+   whale blue at the same fill strength. These are ui-theme's own file-diff
+   tokens, which the deliverables comparison reads directly — no DOM coupling,
+   so the plate colours also follow light/dark automatically. The html-body
+   prefix outranks the shipped selector regardless of stylesheet order. */
+html body {
+  --dsw-alias-file-diff-deleted-bg: rgb(20 40 110 / 16%);
+  --dsw-alias-file-diff-deleted-gutter: rgb(20 40 110 / 8%);
+  --dsw-alias-file-diff-deleted-marker: #142f7e;
+  --dsw-alias-file-diff-added-bg: rgb(122 170 255 / 16%);
+  --dsw-alias-file-diff-added-gutter: rgb(122 170 255 / 8%);
+  --dsw-alias-file-diff-added-marker: #7aaaff;
+  --dsw-alias-code-diff-deleted: rgb(20 40 110 / 14%);
+  --dsw-alias-code-diff-added: rgb(122 170 255 / 14%);
+}
+html body[data-ds-dark-theme] {
+  --dsw-alias-file-diff-deleted-bg: rgb(20 40 110 / 55%);
+  --dsw-alias-file-diff-deleted-gutter: rgb(20 40 110 / 32%);
+  --dsw-alias-file-diff-deleted-marker: #6e8cff;
+  --dsw-alias-file-diff-added-bg: rgb(122 170 255 / 24%);
+  --dsw-alias-file-diff-added-gutter: rgb(122 170 255 / 12%);
+  --dsw-alias-file-diff-added-marker: #a9c2ff;
+  --dsw-alias-code-diff-deleted: rgb(20 40 110 / 55%);
+  --dsw-alias-code-diff-added: rgb(122 170 255 / 22%);
+}
+
+/* Diff line text: the highlighter's syntax palette inside add/del rows collapses
+   to one blue family so plate and ink agree. Setting the colour on the row and
+   forcing nested syntax spans to inherit beats the inline styles the shiki
+   spans carry; line numbers and the +/- signs follow the same ink, while the
+   3px marker bar still comes from the marker tokens above. Unchanged (context)
+   rows keep their normal secondary ink. */
+[data-diff-line="add"],
+[data-diff-line="del"] {
+  color: #142f7e;
+}
+[data-diff-line="add"] *,
+[data-diff-line="del"] * {
+  color: inherit !important;
+}
+body[data-ds-dark-theme] [data-diff-line="add"],
+body[data-ds-dark-theme] [data-diff-line="del"] {
+  color: #a9c2ff;
+}
+
+/* Same plates applied straight on the diff rows. The token block above is the
+   clean route (the component reads --dsw-alias-file-diff-*), but a surface that
+   paints its own row fills would ignore it; these rules make the row itself
+   blue regardless, and re-declare the row-local gutter/marker variables the
+   number cells consume. */
+html body [data-diff-line="add"] {
+  --diff-gutter-fill: rgb(122 170 255 / 8%);
+  --diff-marker: #7aaaff;
+  background: #eaf1ff;
+}
+html body [data-diff-line="del"] {
+  --diff-gutter-fill: rgb(20 40 110 / 8%);
+  --diff-marker: #142f7e;
+  background: #d9dde8;
+}
+html body[data-ds-dark-theme] [data-diff-line="add"] {
+  --diff-gutter-fill: rgb(122 170 255 / 12%);
+  --diff-marker: #a9c2ff;
+  background: #2d394f;
+}
+html body[data-ds-dark-theme] [data-diff-line="del"] {
+  --diff-gutter-fill: rgb(20 40 110 / 32%);
+  --diff-marker: #6e8cff;
+  background: #141f47;
 }
 `
 

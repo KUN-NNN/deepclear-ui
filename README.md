@@ -1,24 +1,46 @@
 # DeepClear UI
 
-![DeepClear UI：左侧 deepseek / harness 点阵字标，右侧鲸鱼娘点阵人像](docs/preview.png)
+![DeepClear UI: the deepseek / harness dot-matrix wordmark on the left and the mascot portrait on the right](docs/preview.png)
 
-新会话欢迎页的点阵鲸鱼娘和 dsh 字样装饰。
+A dot-matrix welcome page for the DeepSeek Harness (dsh) web UI.
 
-- 右侧：鲸鱼娘点阵人像
-- 左侧：`deepseek` / `harness` 点阵字标
+- **Right**: the mascot portrait, sampled from an illustration into a halftone dot grid
+- **Left**: the `deepseek` / `harness` dot-matrix wordmark
 
-## 交互
+Both groups share one dot pitch, scale with the window, sit on the composer, and disappear
+once the session starts. The stock headline, brand mark and pixel-whale canvas are hidden.
 
-- 进入欢迎页时字标整体渐显（`deepseek` 先、`harness` 后）
-- 鼠标划过字标会提亮并留短尾迹；点击会扩散一圈涟漪
+## Interactions
 
-## 自定义
+- The wordmark fades in as a whole when the welcome page appears: `deepseek` first, `harness` after
+- Hovering the wordmark lights the dots up and leaves a short trail
+- Clicking anywhere in the page sends a ripple across the dot field
 
-改图、改点阵、改遮罩的流程见 [`scripts/README.md`](scripts/README.md)：
+## Install
 
 ```
-scripts\rebuild.cmd    # 采样 → 拼接 → 注入
-scripts\preview.cmd    # 生成预览图
+npm i deepclear-ui
 ```
+
+Or install it by name from the dsh Plugins panel. The bundle ships a patch row, a client
+half and locale metadata; no host-side code runs.
+
+## Customize
+
+Swapping the artwork, painting a mask, or editing the dot grid directly is documented in
+[`scripts/README.md`](scripts/README.md):
+
+```
+scripts\rebuild.cmd    # sample artwork -> splice the hero block -> inject the grids
+scripts\preview.cmd    # render a preview strip of both themes
+```
+
+## Palette
+
+| Token | Value |
+|---|---|
+| Whale blue (`harness`) | `#7AAAFF` |
+| Dots, light theme | `#666C78` at per-cell alpha |
+| Dots, dark theme | `#ECEEF2`, weight inverted |
 
 Tested against dsh `0.2.2-rc.3`.

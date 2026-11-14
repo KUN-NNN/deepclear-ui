@@ -594,7 +594,7 @@ const CSS = `
   display: none !important;
 }
 
-/* Blank-home headline: drop the "探索未至之境 · 预览版" line and the brand mark
+/* Blank-home headline: drop the headline copy and the brand mark
    beside it, leaving the dot portrait alone above the composer. The title group
    is a CSS-module class (matched by its local name inside the hash, scoped by
    the headline ancestor); the mark is the hero's own brand slot, matched by its

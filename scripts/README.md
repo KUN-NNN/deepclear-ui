@@ -1,54 +1,61 @@
-# 自己动手改点阵
+# Editing the dots
 
-这个目录是「鲸鱼娘 + 字标」点阵的生成流水线。改图、改遮罩、改网格都在这里，改完跑一条命令即可。
+Everything that turns the artwork into the dotted welcome page lives here. Change the art, paint
+a mask, or edit the grid, then run one command.
 
-## 最快的路径：画一张遮罩
+## Fastest path: paint a mask
 
-1. 把 `src-girl-mask.example.png` 复制成 `src-girl-mask.png`
-2. 用任意画图工具打开，**在要去掉的地方涂白色**（黑 = 保留；图片尺寸不必和原图一样，会自动缩放）
-3. 跑：
+1. Copy `src-girl-mask.example.png` to `src-girl-mask.png`
+2. Open it in any paint app and **paint white over what should disappear** (black = keep; the
+   canvas does not have to match the source size, it is scaled automatically)
+3. Run:
 
 ```
 scripts\rebuild.cmd
 ```
 
-4. 回到 dsh 窗口按 `Ctrl+R` 刷新
+4. Refresh the dsh window with `Ctrl+R`
 
-如果 `src-girl-mask.png` 存在，它就会**覆盖**内置的自动颜色遮罩（那个遮罩专门抠头顶的蓝色发丝环）。
+When `src-girl-mask.png` exists it **overrides** the built-in colour mask that lifts the blue hair
+loop above the head.
 
-## 只想换图
+## Swap the artwork
 
-把新的立绘覆盖为 `scripts/src-girl.png`（建议上半身、白底），然后同样跑 `scripts\rebuild.cmd`。
-网格列数在 `build_girl.py` 顶部：`COLUMNS = 104`（越大越细，点越多）。
+Replace `scripts/src-girl1.png` with a new illustration (upper body on a plain background works
+best), then run `scripts\rebuild.cmd`.
 
-## 预览（不用开 dsh）
+The grid width lives at the top of `build_girl.py`: `COLUMNS = 104` (higher = finer dots).
+
+## Preview without opening dsh
 
 ```
-scripts\preview.cmd        # 或者  python scripts\preview.py
+scripts\preview.cmd
 ```
 
-输出 `scripts/preview-grid.png`：从左到右分别是「浅色主题网格 / 浅色主题反白 / 深色线稿网格 / 深色线稿反白」。
+Writes `scripts/preview-grid.png`: four panels, left to right —
+ink grid on the light canvas, its inverse, line-art grid on the dark canvas, its inverse.
 
-## 想直接改点阵（进阶）
+## Edit the grid directly (advanced)
 
-`girl-grid.txt` 是 104×73 个十六进制字符，行优先：`0` = 空的格子，`1`–`f` = 点的浓度。
-直接编辑它也能生效——改完只要跑
+`girl-grid.txt` holds 104 x 73 hexadecimal characters, row by row: `0` is an empty cell and
+`1`-`f` is the dot weight. Editing it works, but then only run:
 
 ```
 node scripts\splice.mjs
 node scripts\build.mjs
 ```
 
-（注意不要跑 `build_girl.py`，那会按图重新覆盖你的手改。）
+Do **not** run `build_girl.py` after a manual edit — it re-samples the artwork and overwrites the file.
 
-## 参数都在哪
+## Where the parameters are
 
-| 想调什么 | 文件 | 位置 |
+| What to tune | File | Name |
 |---|---|---|
-| 采样精度（点密度） | `build_girl.py` | `COLUMNS` |
-| 裁切比例（只留上半身） | `build_girl.py` | `CROP` |
-| 自动抠发丝环的范围 | `build_girl.py` | `LOOP_BOX` / `LOOP_HUE` |
-| 深色主题用的线稿强度 | `build_girl.py` | `LINE_GAIN` / `TONE_KEEP` |
-| 点距、字号、布局、动画 | `hero.js` | `DOT_PITCH` / `LOCKUP_*` / `ASSEMBLY_*` |
+| Grid resolution (dot density) | `build_girl.py` | `COLUMNS` |
+| How much of the artwork is kept | `build_girl.py` | `CROP` |
+| Automatic hair-loop mask | `build_girl.py` | `LOOP_BOX` / `LOOP_HUE` |
+| Line-art strength (dark theme) | `build_girl.py` | `LINE_GAIN` / `TONE_KEEP` |
+| Dot pitch, layout, animation | `hero.js` | `DOT_PITCH` / `LOCKUP_*` / `ASSEMBLY_*` |
 
-`hero.js` 改完同样跑 `splice.mjs` + `build.mjs`（或直接 `rebuild.cmd`，它会重新采样，手改网格会丢）。
+Changing `hero.js` needs `splice.mjs` plus `build.mjs` afterwards (or just `rebuild.cmd` — but that
+re-samples the artwork, so manual grid edits are lost).

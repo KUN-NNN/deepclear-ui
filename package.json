@@ -1,0 +1,46 @@
+{
+  "name": "deepclear-ui",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "description": "DeepClear UI — the dot-matrix welcome surface: a mascot portrait plus a deepseek / harness wordmark.",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "docs",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "author": "kunnnn",
+  "engines": {
+    "dsh": ">=0.2.1-rc.5 <0.3.0"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "theme",
+    "appearance",
+    "dot-matrix",
+    "welcome-page"
+  ]
+}

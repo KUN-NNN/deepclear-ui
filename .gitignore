@@ -1,0 +1,9 @@
+# development artefacts (generated previews, source art backups, packages)
+node_modules/
+*.tgz
+*.log
+scripts/preview-*.png
+scripts/src-girl-original.png
+scripts/src-girl.png
+Thumbs.db
+.DS_Store

@@ -1,0 +1,1 @@
+![The dot-matrix welcome page: a deepseek / harness wordmark on the left and the mascot portrait on the right](preview.svg)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.7
+
+- The toggle is now drawn as SVG: a 48x28 capsule (`rx = 14`, exact semicircle ends) with a
+  true 18px circle knob (`<circle r="9">`). Shapes no longer depend on CSS radii, so the knob
+  cannot be squashed into a rounded square at any zoom or inside any host rule.
+
 ## 1.6.6
 
 - The toggle knob is thinner: 18px with a 5px margin instead of 22px with 3px.

@@ -1138,20 +1138,16 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   line-height: 1.45;
 }
 
-/* Switch modelled on the shipped toggle: a capsule that inverts when it turns on.
-   Off is a quiet grey track with a light knob on the left; on is the strong label
-   colour as the track with the page colour as the knob, pushed to the right. */
+/* The control is an SVG capsule with a drawn circle knob, so the track ends are
+   exact semicircles and the knob is an exact circle at any zoom. */
 .dc-switch {
-  position: relative;
   flex: none;
-  width: 48px;
-  height: 28px;
+  display: inline-flex;
   padding: 0;
   border: 0;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--dsw-alias-label-tertiary) 34%, transparent);
+  background: transparent;
   cursor: pointer;
-  transition: background 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dc-switch:focus-visible {
@@ -1159,32 +1155,11 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   outline-offset: 2px;
 }
 
-/* The shipped toggle is a circle inside the capsule: 22px, 3px margin, so only a
-   thin ring of track shows around it. */
-.dc-switch-knob {
-  position: absolute;
-  top: 5px;
-  left: 5px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--dsw-alias-label-primary) 82%, transparent);
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.dc-switch[data-on] {
-  background: var(--dsw-alias-label-primary);
-}
-
-.dc-switch[data-on] .dc-switch-knob {
-  transform: translateX(25px);
-  background: var(--dsw-alias-bg-base, #17171a);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .dc-switch,
-  .dc-switch-knob {
-    transition: none;
+  .dc-switch svg rect,
+  .dc-switch svg g,
+  .dc-switch svg circle {
+    transition: none !important;
   }
 }
 
@@ -1715,6 +1690,47 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       },
     }
 
+    /** Switch drawn as SVG so the capsule ends and the knob are exact shapes. */
+    function DcSwitchSvg({ value }) {
+      const on = value === true
+      return h('svg', {
+        width: 48,
+        height: 28,
+        viewBox: '0 0 48 28',
+        'aria-hidden': 'true',
+        style: { display: 'block', overflow: 'visible' },
+      }, [
+        h('rect', {
+          key: 'track',
+          x: 0,
+          y: 0,
+          width: 48,
+          height: 28,
+          rx: 14,
+          ry: 14,
+          style: {
+            fill: on ? 'var(--dsw-alias-label-primary)' : 'color-mix(in srgb, var(--dsw-alias-label-tertiary) 34%, transparent)',
+            transition: 'fill 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+          },
+        }),
+        h('g', {
+          key: 'knob',
+          style: {
+            transform: on ? 'translateX(20px)' : 'translateX(0px)',
+            transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
+          },
+        }, h('circle', {
+          cx: 14,
+          cy: 14,
+          r: 9,
+          style: {
+            fill: on ? 'var(--dsw-alias-bg-base, #17171a)' : 'color-mix(in srgb, var(--dsw-alias-label-primary) 82%, transparent)',
+            transition: 'fill 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+          },
+        })),
+      ])
+    }
+
     /** One settings row: a label on the left and a switch on the right. */
     function DcSwitch({ label, description, value, onChange }) {
       return h('div', { className: 'dc-set-row' }, [
@@ -1733,7 +1749,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           className: 'dc-switch',
           'data-on': value ? 'true' : undefined,
           onClick: () => onChange(!value),
-        }, h('span', { className: 'dc-switch-knob', 'aria-hidden': 'true' })),
+        }, h(DcSwitchSvg, { key: 'glyph', value: value === true })),
       ])
     }
 

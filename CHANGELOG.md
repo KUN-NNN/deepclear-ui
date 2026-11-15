@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.2
+
+- Switches are printed dot capsules that spell their own state: the glyph is sampled into
+  the dot grid, on floods the field blue and leaves the word "on" as unlit dots, off inverts
+  it (dim field, lit word "off").
+
 ## 1.6.1
 
 - Switches are capsules printed in dots: the 48x28 pill is filled with a dense 4px lattice

@@ -1990,9 +1990,10 @@ body {
             const band = Math.max(30, Math.min(46, cardRect.height * 0.34))
             rowRect = { top: cardRect.bottom - band - 3, height: band }
           }
-          const pad = 5
-          const top = Math.max(cardRect.top + 4, rowRect.top - pad)
-          const bottom = Math.min(cardRect.bottom - 2, rowRect.top + rowRect.height + pad)
+          // Sit the band slightly low on the row so the field reads as a floor, not a
+          // label floating above the buttons.
+          const top = Math.max(cardRect.top + 4, rowRect.top + 1)
+          const bottom = Math.min(cardRect.bottom - 2, rowRect.top + rowRect.height + 7)
           const height = bottom - top
           if (height < 24) return null
           if (top <= input.top + input.height * 0.5) return null
@@ -2003,7 +2004,7 @@ body {
         const glyphOf = area => {
           const key = Math.round(area.width) + 'x' + Math.round(area.height)
           if (state.glyph !== null && state.lock === key) return state.glyph
-          const fontSize = Math.max(26, Math.min(area.height * 0.95, area.width * 0.42, 110))
+          const fontSize = Math.max(18, Math.min(area.height * 0.7, area.width * 0.26, 64))
           const probe = document.createElement('canvas')
           probe.width = Math.ceil(area.width)
           probe.height = Math.ceil(area.height)

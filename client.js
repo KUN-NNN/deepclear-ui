@@ -2107,7 +2107,9 @@ body {
             }
           }
           context.globalAlpha = 1
-          if (state.thinking || Math.abs(state.fade - target) > 0.004) {
+          // Keep painting through the entrance, then idle once the picture is static.
+          const entering = now - state.started < 1700
+          if (state.thinking || entering || Math.abs(state.fade - target) > 0.004) {
             state.frame = requestAnimationFrame(paint)
             state.live = true
           } else {

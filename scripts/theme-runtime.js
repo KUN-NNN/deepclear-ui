@@ -102,11 +102,17 @@
         }
         const ownsValues = Object.keys(DC_DEFAULT_SETTINGS).some(key =>
           snapshot.user !== null && typeof snapshot.user === 'object' && Object.hasOwn(snapshot.user, key))
-        if (!migrationTried && dcLegacy !== null && !ownsValues && !snapshot.value.settingsMigrated && snapshot.writable) {
+        const legacyKeys = dcLegacy === null ? []
+          : Object.keys(dcLegacy).filter(key => Object.hasOwn(DC_DEFAULT_SETTINGS, key))
+        if (!migrationTried && legacyKeys.length > 0 && !ownsValues && !snapshot.value.settingsMigrated && snapshot.writable) {
           migrationTried = true
           migrating = true
           dcPublish({ status: 'ready', writable: true, pending: true, error: '' })
-          const ops = Object.entries(dcLegacy).map(([key, value]) => ({ op: 'set', path: [key], value }))
+          // Only carry keys the current schema still owns: a legacy blob may mention
+          // preferences that were removed, and one unknown path rejects the whole write.
+          const ops = Object.entries(dcLegacy)
+            .filter(([key]) => Object.hasOwn(DC_DEFAULT_SETTINGS, key))
+            .map(([key, value]) => ({ op: 'set', path: [key], value }))
           ops.push({ op: 'set', path: ['settingsMigrated'], value: true })
           // Fence the exact snapshot that established the namespace was empty.
           const migrate = async () => form.mutate(ops, snapshot.revision)

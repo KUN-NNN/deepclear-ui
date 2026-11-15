@@ -1890,6 +1890,8 @@ body {
         const motion = matchMedia('(prefers-reduced-motion: reduce)')
         const state = {
           active: false,
+          thinking: false,
+          pulseStart: 0,
           started: 0,
           fade: 0,
           frame: 0,
@@ -2029,17 +2031,31 @@ body {
             const centerX = area.left + area.width / 2
             const pitch = 4
             context.fillStyle = '#ffffff'
+            // While the model thinks, a highlight sweeps from the middle of the band out
+            // to both edges, so the field reads as a pulse rather than a static texture.
+            const half = area.width / 2 + 60
+            const wave = state.thinking
+              ? (((now - state.pulseStart) % 1500) / 1500) * (area.width / 2 + 80)
+              : -1e4
             const startY = Math.floor(area.top / pitch) * pitch + pitch / 2
             for (let y = startY; y < area.top + area.height; y += pitch) {
               const startX = Math.floor(area.left / pitch) * pitch + pitch / 2
               for (let x = startX; x < area.left + area.width; x += pitch) {
                 const spread = Math.abs(x - centerX)
                 if (spread > reach) continue
-                const alpha = fieldAlpha * (1 - spread / (area.width / 2 + 60))
+                const base = fieldAlpha * (1 - spread / half)
+                let highlight = 0
+                if (state.thinking) {
+                  const distance = Math.abs(spread - wave)
+                  if (distance < 66) {
+                    highlight = Math.exp(-(distance * distance) / (2 * 27 * 27)) * 0.7 * state.fade
+                  }
+                }
+                const alpha = base + highlight
                 if (alpha < 0.01) continue
                 context.globalAlpha = Math.min(1, alpha)
                 context.beginPath()
-                context.arc(x, y, 0.85, 0, Math.PI * 2)
+                context.arc(x, y, 0.85 + highlight * 0.55, 0, Math.PI * 2)
                 context.fill()
               }
             }
@@ -2062,7 +2078,7 @@ body {
           }
           context.restore()
           context.globalAlpha = 1
-          if (state.active || state.fade >= 0.02) {
+          if (state.thinking || Math.abs(state.fade - target) > 0.004) {
             state.frame = requestAnimationFrame(paint)
             state.live = true
           } else {
@@ -2078,6 +2094,12 @@ body {
 
         const sync = () => {
           const card = cardOf()
+          const thinking = document.querySelector('[data-chat-running]') !== null
+          if (thinking !== state.thinking) {
+            state.thinking = thinking
+            if (thinking) state.pulseStart = performance.now()
+            wake()
+          }
           const next = effortIsMax(card)
           if (next !== state.active) {
             state.active = next
@@ -2093,12 +2115,14 @@ body {
         observer.observe(document.body, { childList: true, subtree: true, characterData: true })
         const timer = setInterval(sync, 600)
         window.addEventListener('resize', sync)
+        document.addEventListener('scroll', sync, true)
         sync()
         return () => {
           stopped = true
           observer.disconnect()
           clearInterval(timer)
           window.removeEventListener('resize', sync)
+          document.removeEventListener('scroll', sync, true)
           if (state.frame !== 0) cancelAnimationFrame(state.frame)
           state.frame = 0
           state.live = false

@@ -1542,6 +1542,30 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       ])
     }
 
+    /** Dot-matrix glyph for the settings navigation row. */
+    function DcSettingsIcon({ size = 16, active }) {
+      const unit = size / 16;
+      const dots = [
+        [3, 3], [8, 3], [13, 3],
+        [3, 8], [8, 8], [13, 8],
+        [3, 13], [8, 13], [13, 13],
+      ]
+      const color = active ? '#7aaaff' : 'currentColor'
+      return h('svg', {
+        viewBox: '0 0 16 16',
+        width: size,
+        height: size,
+        'aria-hidden': 'true',
+        style: { display: 'block' },
+      }, dots.map((dot, index) => h('circle', {
+        key: index,
+        cx: dot[0],
+        cy: dot[1],
+        r: 1.35 * unit,
+        fill: color,
+      })))
+    }
+
     /** The Settings ▸ DeepClear UI page. */
     function DcSettingsPage() {
       const [state, setState] = React.useState({ ...dcSettings })
@@ -1625,8 +1649,13 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
             name: 'settings.section',
             id: 'deepclear-ui',
             order: 25,
-            label: 'DeepClear UI',
+            label: () => 'DeepClear UI',
           }, DcSettingsPage))
+          ctx.slots.inject('settings.section.icon', () => ctx.slots.register({
+            name: 'settings.section.icon',
+            id: 'deepclear-ui',
+            order: 25,
+          }, DcSettingsIcon))
         })
 
         guarded('composer-stats', () => {

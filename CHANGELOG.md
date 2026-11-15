@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.2
+
+- Settings navigation: the section label is registered as a thunk (the shell resolves nav
+  labels lazily; a plain string rendered an empty row) and the section now ships its own
+  nine-dot nav icon.
+
 ## 1.4.1
 
 - Fix: the settings registration was declared before the internal guard helper, so the client

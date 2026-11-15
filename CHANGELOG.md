@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0
+
+- Settings sheet stripped back: the lead paragraph is gone, rows no longer draw separators,
+  and the toggle only strokes its outline when it is on.
+
 ## 1.6.9
 
 - The two toggle states read at the same size: both states now carry a 1px stroke, the

@@ -1081,13 +1081,6 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   font-synthesis: none;
 }
 
-.dc-set-lead {
-  margin: 0 0 18px;
-  color: var(--dsw-alias-label-secondary);
-  font-size: var(--dsh-content-font-size-secondary, 13px);
-  line-height: 1.5;
-}
-
 .dc-set-group {
   margin: 0 0 22px;
   padding: 0 0 6px;
@@ -1112,11 +1105,6 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   align-items: center;
   gap: 16px;
   padding: 10px 0;
-  border-top: 1px solid color-mix(in srgb, var(--dsw-alias-border-l1) 55%, transparent);
-}
-
-.dc-set-group-title + .dc-set-row {
-  border-top: 0;
 }
 
 .dc-set-text {
@@ -1716,7 +1704,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
             // and the dim one read at the same size instead of one looking fatter.
             stroke: on
               ? 'color-mix(in srgb, var(--dsw-alias-label-primary) 94%, transparent)'
-              : 'color-mix(in srgb, var(--dsw-alias-label-tertiary) 62%, transparent)',
+              : 'none',
             strokeWidth: 1,
             transition: 'fill 200ms cubic-bezier(0.22, 1, 0.36, 1), stroke 200ms cubic-bezier(0.22, 1, 0.36, 1)',
           },
@@ -1790,7 +1778,6 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
         })
       }
       return h('div', { className: 'dc-set' }, [
-        h('p', { key: 'lead', className: 'dc-set-lead' }, copy.lead),
         group(copy.groups.hero, [
           item('hero'), item('field'), item('wave'), item('ripple'),
         ]),

@@ -1974,6 +1974,15 @@ body {
           if (rect.width < 40 || rect.height < 24) return null
           return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
         }
+        // The word lands one row lower: the send-button row under the text field.
+        const glyphAreaOf = (card, input) => {
+          if (card === null || input === null) return null
+          const cardRect = card.getBoundingClientRect()
+          const top = input.top + input.height
+          const height = cardRect.bottom - top
+          if (height < 22 || cardRect.width < 60) return null
+          return { left: cardRect.left, top, width: cardRect.width, height }
+        }
 
         // Sample MAX into the dot grid once per geometry; the glyph never moves.
         const glyphOf = area => {
@@ -2034,6 +2043,7 @@ body {
           const style = getComputedStyle(card)
           const radius = parseFloat(style.borderTopLeftRadius) || 12
           const accent = (style.getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
+          const glyphArea = glyphAreaOf(card, area)
           const elapsed = now - state.started
           const expand = motion.matches ? 1 : Math.min(1, Math.max(0, elapsed / 780))
           const eased = 1 - Math.pow(1 - expand, 3)
@@ -2071,19 +2081,29 @@ body {
             }
           }
 
-          if (glyphAlpha > 0.01) {
-            const glyph = glyphOf(area)
+          if (glyphAlpha > 0.01 && glyphArea !== null) {
+            const glyph = glyphOf(glyphArea)
             if (glyph !== null) {
+              // The word lives in its own row, so it gets its own clip.
+              context.save()
+              context.beginPath()
+              if (typeof context.roundRect === 'function') {
+                context.roundRect(glyphArea.left, glyphArea.top, glyphArea.width, glyphArea.height, radius)
+              } else {
+                context.rect(glyphArea.left, glyphArea.top, glyphArea.width, glyphArea.height)
+              }
+              context.clip()
               context.fillStyle = accent
               context.shadowColor = accent
               context.shadowBlur = 6
               for (const dot of glyph.dots) {
                 context.globalAlpha = Math.min(1, glyphAlpha)
                 context.beginPath()
-                context.arc(area.left + dot.x, area.top + dot.y, 0.95, 0, Math.PI * 2)
+                context.arc(glyphArea.left + dot.x, glyphArea.top + dot.y, 0.95, 0, Math.PI * 2)
                 context.fill()
               }
               context.shadowBlur = 0
+              context.restore()
             }
           }
           context.restore()

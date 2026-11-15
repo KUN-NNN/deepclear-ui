@@ -938,11 +938,13 @@ body[data-ds-dark-theme] {
 body[data-ds-dark-theme] {
   --dc-effort-field: rgba(255, 255, 255, 0.8);
   --dc-effort-ink: rgba(255, 255, 255, 0.95);
+  --dc-effort-glow: rgba(255, 255, 255, 0.6);
 }
 
 body:not([data-ds-dark-theme]) {
   --dc-effort-field: rgba(58, 62, 72, 0.55);
   --dc-effort-ink: rgba(22, 24, 28, 0.92);
+  --dc-effort-glow: rgba(40, 44, 52, 0.4);
 }
 
 [data-composer-card] {
@@ -965,22 +967,28 @@ body:not([data-ds-dark-theme]) {
   pointer-events: none;
   border-radius: 10px;
   opacity: 0.42;
-  /* Layer one is the thinking highlight: a soft light that grows outwards from the
-     middle. Layer two is the dot print itself. */
-  background-image: radial-gradient(
-      ellipse 50% 70% at 50% 50%,
-      rgba(255, 255, 255, 0.55) 0%,
-      rgba(255, 255, 255, 0.18) 46%,
-      transparent 74%
+  /* Two vertical highlight bars travel from the middle outwards while the model
+     thinks; the third layer is the dot print itself. */
+  background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--dc-effort-glow) 50%,
+      transparent 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--dc-effort-glow) 50%,
+      transparent 100%
     ),
     radial-gradient(
       circle at 1px 1px,
       var(--dc-effort-field) 0.9px,
       transparent 1.15px
     );
-  background-size: 0% 100%, 4px 4px;
-  background-repeat: no-repeat, repeat;
-  background-position: 50% 50%, 0 0;
+  background-size: 0% 100%, 0% 100%, 4px 4px;
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-position: 50% 50%, 50% 50%, 0 0;
   /* Fade the field out towards both edges so it reads as depth, not a band. */
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
@@ -1039,14 +1047,16 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
 
 @keyframes dc-effort-spread {
   0% {
-    background-size: 6% 100%, 4px 4px;
-    opacity: 0.12;
+    background-size: 10% 100%, 10% 100%, 4px 4px;
+    background-position: 50% 50%, 50% 50%, 0 0;
+    opacity: 0.1;
   }
-  22% {
-    opacity: 0.5;
+  18% {
+    opacity: 0.62;
   }
   100% {
-    background-size: 240% 100%, 4px 4px;
+    background-size: 10% 100%, 10% 100%, 4px 4px;
+    background-position: 0% 50%, 100% 50%, 0 0;
     opacity: 0.1;
   }
 }

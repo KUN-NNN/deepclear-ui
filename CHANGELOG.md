@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.7
+
+- Fix: the two Thinking switches read the wrong keys (`sphere` / `label` instead of
+  `thinkingSphere` / `thinkingLabel`), so they always looked off and toggling them wrote a
+  key no feature reads. Every switch is now audited against the settings defaults at build
+  time.
+
 ## 1.5.6
 
 - Settings switches: a 48x28 capsule track (radius exactly half the height) with a round

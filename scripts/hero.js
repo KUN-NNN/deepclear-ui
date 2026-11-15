@@ -15,7 +15,7 @@
     const LOCKUP_ROWS = 58
 
     /** Alpha buckets drawn per frame, so the twinkle costs one fill per level. */
-    const LEVELS = 7
+    const LEVELS = 12
     const TAU = Math.PI * 2
 
     /**
@@ -23,7 +23,7 @@
      * loose: slow alpha breathing reads the same at 16 fps, and the canvas is
      * only alive while the blank home is on screen.
      */
-    const FRAME_MS = 1000 / 16
+    const FRAME_MS = 1000 / 30
 
     /** One dot's cell in CSS pixels: fixed, so dots never scale with the window. */
     const DOT_PITCH = 9
@@ -32,7 +32,7 @@
     const TEXT_MIN_PITCH = 3.6
 
     /** Wordmark assembly: dots reveal left to right over this long. */
-    const ASSEMBLY_MS = 1000
+    const ASSEMBLY_MS = 1300
 
     /** Each line's slice of the assembly, in timeline fractions: line 1 starts
      *  while line 0 is still finishing, so the two never pop at once. */
@@ -208,6 +208,9 @@
       const wordmark = lockupDots()
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const started = performance.now()
+      // The reveal clock starts on the first paint that actually has a canvas to draw
+      // into, otherwise the animation can finish while the element is still sizing.
+      let revealStarted = 0
       let width = 1
       let height = 1
       let dpr = 1
@@ -270,10 +273,21 @@
         if (pointerActive) {
           trail.push({ x: pointerX, y: pointerY, at: performance.now() })
           if (trail.length > 8) trail.shift()
+        spawnRipple()
         }
         if (reduced) paint(performance.now())
       }
       const onPointerLeave = () => { pointerActive = false }
+      /** Moving the pointer over the field band leaves a light ripple behind. */
+      const spawnRipple = () => {
+        const nowMs = performance.now()
+        if (nowMs - lastRippleAt < 90) return
+        const bandTop = boxHeight - Math.min(440, Math.max(230, boxHeight * 0.4))
+        if (pointerY < bandTop) return
+        lastRippleAt = nowMs
+        fieldRipples.push({ x: pointerX, y: pointerY, at: nowMs })
+        if (fieldRipples.length > 8) fieldRipples.shift()
+      }
       /** Recent pointer samples so the light leaves a short, fading trail. */
       const trail = []
       /** Click ripples: origin plus start time, oldest first. */
@@ -305,11 +319,22 @@
        * Draw one frame: both groups hold still and only their alpha breathes.
        * @param now - frame timestamp.
        */
-      const paint = (now) => {
+      let bgLayer = null
+        let bgGlow = null
+        let fieldDots = null
+        const fieldRipples = []
+        let lastRippleAt = 0
+        let fieldKeyCache = ''
+        let composerFocused = false
+        let focusAmount = 0
+        let bgKey = ''
+
+        const paint = (now) => {
         if (disposed) return
+        if (revealStarted === 0 && width > 200 && height > 200) revealStarted = now
         // The assembly is a short, fast reveal: give it a smoother frame rate
         // than the slow twinkle, then fall back to the cheap cadence.
-        const assembling = now - started < ASSEMBLY_MS + 80
+        const assembling = now - revealStarted < ASSEMBLY_MS + 80
         const interval = (assembling ? 1000 / 60 : FRAME_MS) - 1
         if (!reduced && now - drawnAt < interval) {
           frame = requestAnimationFrame(paint)
@@ -372,8 +397,80 @@
         const maxX = Math.max(minX, width - portraitW / 2 - 6)
         portraitX = Math.min(Math.max(portraitX, minX), maxX)
         const blockY = portraitY - blockH / 2
+        // The portrait and the wordmark are centred on each other, which leaves their
+        // cell rows half a cell apart; nudge the portrait so every dot in the scene
+        // (artwork and printed field alike) lands on one single lattice.
+        const portraitYAligned = portraitY + pitch / 2
         const portraitRadius = Math.max(0.8, pitch * 0.28)
         const lockupRadius = Math.max(0.8, pitch * 0.34)
+
+        // A faint dot field under everything, built on the artwork's own pitch and
+        // ink so the background reads as part of the same printed sheet.
+        // Phase the background lattice onto the artwork's own grid: the wordmark and the
+        // portrait already sit on one lattice (their origins differ by a whole number
+        // of cells), so matching that phase makes the field read as the same printed
+        // sheet instead of a second, offset grid.
+        // Artwork dots sit at the CENTRES of their cells (blockX + (col + 0.5) * pitch),
+        // so the field has to be phased half a cell further: its dots land exactly on
+        // the artwork's dots, like stones on intersections, not inside the squares.
+        const phaseX = (((blockX + pitch / 2) % pitch) + pitch) % pitch
+        const phaseY = (((blockY + pitch / 2) % pitch) + pitch) % pitch
+        const buildKey = pitch.toFixed(3) + '|' + ink + '|' + phaseX.toFixed(3) + '|'
+          + phaseY.toFixed(3) + '|' + width + '|' + height + '|' + dpr
+        if (buildKey !== bgKey) {
+          bgKey = buildKey
+          bgLayer = document.createElement('canvas')
+          bgLayer.width = Math.max(1, Math.round(width * dpr))
+          bgLayer.height = Math.max(1, Math.round(height * dpr))
+          const layerContext = bgLayer.getContext('2d')
+          if (layerContext === null) {
+            bgLayer = null
+          } else {
+            layerContext.setTransform(dpr, 0, 0, dpr, 0, 0)
+            const fieldRadius = Math.max(0.45, pitch * 0.11)
+
+            // The resting field.
+            layerContext.fillStyle = 'rgba(' + ink + ', 0.1)'
+            for (let y = phaseY; y < height + pitch; y += pitch) {
+              for (let x = phaseX; x < width + pitch; x += pitch) {
+                layerContext.beginPath()
+                layerContext.arc(x, y, fieldRadius, 0, TAU)
+                layerContext.fill()
+              }
+            }
+
+            // The focused field: the same lattice, but brighter close to the
+            // composer card and fading out with distance, so the click lights the
+            // dots around the input rather than the whole page.
+            bgGlow = document.createElement('canvas')
+            bgGlow.width = bgLayer.width
+            bgGlow.height = bgLayer.height
+            const glowContext = bgGlow.getContext('2d')
+            if (glowContext === null) {
+              bgGlow = null
+            } else {
+              glowContext.setTransform(dpr, 0, 0, dpr, 0, 0)
+              const cardLeft = composerWidth > 160 ? composerLeft : (width - limit) / 2
+              const cardWidthForGlow = composerWidth > 160 ? composerWidth : limit
+              const glowRadiusX = Math.max(160, cardWidthForGlow * 0.55)
+              const glowRadiusY = Math.max(150, Math.min(height * 0.3, 260))
+              const centerX = cardLeft + cardWidthForGlow / 2
+              const centerY = composerTop + 8
+              for (let y = phaseY; y < height + pitch; y += pitch) {
+                for (let x = phaseX; x < width + pitch; x += pitch) {
+                  const dx = (x - centerX) / glowRadiusX
+                  const dy = (y - centerY) / glowRadiusY
+                  const falloff = Math.exp(-(dx * dx + dy * dy) * 2.1)
+                  if (falloff < 0.03) continue
+                  glowContext.fillStyle = 'rgba(' + ink + ', ' + (0.3 * falloff).toFixed(3) + ')'
+                  glowContext.beginPath()
+                  glowContext.arc(x, y, fieldRadius, 0, TAU)
+                  glowContext.fill()
+                }
+              }
+            }
+          }
+        }
 
         // The portrait runs one opacity notch brighter than the wordmark, so the
         // two groups keep separate alpha ladders.
@@ -386,7 +483,12 @@
         }
 
         // Wordmark assembly: dots light up left to right, with a bright front.
-        const assembly = reduced ? 1 : Math.min(1, (now - started) / ASSEMBLY_MS)
+        const assembly = reduced ? 1 : Math.min(1, (now - revealStarted) / ASSEMBLY_MS)
+        // The portrait follows the wordmark: a soft vertical wipe grows it downward
+        // about a tenth of a second later.
+        const portraitProgress = reduced
+          ? 1
+          : Math.max(0, Math.min(1, ((now - revealStarted) - 140) / 1100))
         while (ripples.length > 0 && now - ripples[0].at > 760) ripples.shift()
         const trailNow = trail.filter(sample => now - sample.at < 420)
         const rippleBoost = (x, y) => {
@@ -418,7 +520,16 @@
         const place = (target, dot, x, y, radius, kind, line) => {
           // The portrait holds a steady level; only the wordmark breathes.
           const breathe = reduced ? 0.6 : 0.5 + 0.5 * Math.sin(time * dot.speed + dot.phase)
-          let tone = kind === 'portrait' ? dot.a : dot.a * (0.35 + 0.65 * breathe)
+          // Ease the wave so the low and high ends linger instead of sweeping
+          // through the extremes linearly, which reads as a softer pulse.
+          const eased = breathe * breathe * (3 - 2 * breathe)
+          let tone = kind === 'portrait' ? dot.a : dot.a * (0.35 + 0.65 * eased)
+          if (kind === 'portrait' && portraitProgress < 1) {
+            const local = Math.max(0, Math.min(1, (portraitProgress - dot.v * 0.45) / 0.55))
+            const wipe = local * local * (3 - 2 * local)
+            if (wipe <= 0.004) return
+            tone *= wipe
+          }
           if (kind === 'wordmark') {
             if (assembly < 1) {
               // Whole-word fade: the line rises as one piece, no left-to-right sweep.
@@ -445,7 +556,7 @@
             portraitPaths,
             dot,
             portraitX + (dot.u - 0.5) * portraitW,
-            portraitY + (dot.v - 0.5) * portraitH,
+            portraitYAligned + (dot.v - 0.5) * portraitH,
             portraitRadius,
             'portrait',
           )
@@ -468,6 +579,86 @@
 
         context.setTransform(dpr, 0, 0, dpr, 0, 0)
         context.clearRect(0, 0, width, height)
+        // The field is painted after the clear so it survives the frame.
+        if (bgLayer !== null) {
+          context.drawImage(bgLayer, 0, 0, width, height)
+        }
+        const focusTarget = composerFocused ? 1 : 0
+        focusAmount += (focusTarget - focusAmount) * 0.14
+        if (focusAmount > 0.005 && bgGlow !== null) {
+          context.save()
+          context.globalAlpha = Math.min(1, focusAmount)
+          context.drawImage(bgGlow, 0, 0, width, height)
+          context.restore()
+        }
+
+        // The wave field lives on the lattice: the light pattern is pure brightness,
+        // and the pointer can nudge dots aside. Nothing follows the cursor and every
+        // displaced dot springs straight back to its own cell.
+        const fieldKey = width + '|' + height + '|' + pitch.toFixed(3) + '|'
+          + phaseX.toFixed(2) + '|' + phaseY.toFixed(2)
+        if (fieldKey !== fieldKeyCache) {
+          fieldKeyCache = fieldKey
+          fieldDots = []
+          const bandHeight = Math.min(440, Math.max(230, height * 0.4))
+          const bandTop = height - bandHeight
+          for (let y = phaseY; y < height + pitch; y += pitch) {
+            if (y < bandTop) continue
+            const depth = Math.min(1, (y - bandTop) / bandHeight)
+            const vertical = depth * depth * (3 - 2 * depth)
+            for (let x = phaseX; x < width + pitch; x += pitch) {
+              fieldDots.push({ x: x, y: y, vertical: vertical, ox: 0, oy: 0, vx: 0, vy: 0 })
+            }
+          }
+        }
+
+        if (!reduced && fieldDots !== null) {
+          const dt = 1 / 30
+          const unit = pitch / 8
+          const fieldRadius = Math.max(0.45, pitch * 0.11)
+          const breathe = 0.86 + 0.14 * Math.sin(time * 0.13)
+          const buckets = [[], [], [], [], [], []]
+          while (fieldRipples.length > 0 && now - fieldRipples[0].at > 1100) fieldRipples.shift()
+          for (const dot of fieldDots) {
+
+            const warpX = Math.sin(dot.y * 0.006 / unit + time * 0.23) * 30
+              + Math.sin(dot.x * 0.003 / unit - time * 0.17) * 20
+            const warpY = Math.sin(dot.x * 0.0035 / unit + time * 0.29) * 26
+            const u = (dot.x + warpX) / unit
+            const v = (dot.y + warpY) / unit
+            const field = 0.5
+              + 0.3 * Math.sin(u * 0.0035 - time * 0.55)
+              + 0.22 * Math.sin(u * 0.0061 + time * 0.37 + v * 0.01)
+              + 0.18 * Math.sin(u * 0.0107 - time * 0.29 + v * 0.021)
+              + 0.12 * Math.sin(u * 0.0173 + time * 0.83 - v * 0.033)
+            let light = Math.max(0, Math.min(1, field)) ** 1.6
+            // A touch only adds light: rings race outward and fade, the dots stay put.
+            for (const ripple of fieldRipples) {
+              const age = (now - ripple.at) / 1100
+              const rdx = dot.x - ripple.x
+              const rdy = dot.y - ripple.y
+              const distance = Math.sqrt(rdx * rdx + rdy * rdy)
+              const ring = Math.exp(-Math.pow((distance - age * 420) / 42, 2)) * (1 - age)
+              if (ring > 0.001) light += ring * 0.8
+            }
+            const alpha = dot.vertical * (0.05 + Math.min(1, light) * 0.85) * breathe * (dark ? 1 : 1.2)
+            const level = Math.min(5, Math.floor(alpha * 7))
+            buckets[level].push(dot.x, dot.y)
+          }
+          for (let level = 0; level < buckets.length; level += 1) {
+            const bucket = buckets[level]
+            if (bucket.length === 0) continue
+            const alpha = 0.03 + level * 0.105
+            context.fillStyle = 'rgba(' + ink + ', ' + alpha.toFixed(3) + ')'
+            context.beginPath()
+            for (let index = 0; index < bucket.length; index += 2) {
+              context.moveTo(bucket[index] + fieldRadius, bucket[index + 1])
+              context.arc(bucket[index], bucket[index + 1], fieldRadius, 0, TAU)
+            }
+            context.fill()
+          }
+        }
+
         const paintGroup = (paths, boost, color) => {
           for (let level = 0; level < LEVELS; level += 1) {
             const alpha = Math.min(1, (0.05 + (level / (LEVELS - 1)) * 0.5) * boost).toFixed(3)
@@ -478,10 +669,10 @@
         // The portrait's opacity nudge flips with the palette: +10% on the light
         // canvas, and its inverse trim on the dark one, where light dots already
         // read brighter against the canvas.
-        paintGroup(portraitPaths, dark ? 1.15 : 1.5, ink)
+        paintGroup(portraitPaths, dark ? 1.15 : 1.8, ink)
         if (showText) {
-          paintGroup(wordmarkPaths[0], 1, ink)
-          paintGroup(wordmarkPaths[1], 1, '122, 170, 255')
+          paintGroup(wordmarkPaths[0], dark ? 1 : 1.2, ink)
+          paintGroup(wordmarkPaths[1], dark ? 1 : 1.2, '122, 170, 255')
         }
         if (DEBUG) {
           context.fillStyle = '#ff5555'
@@ -508,6 +699,15 @@
         if (reduced) paint(performance.now())
       })
       observer.observe(canvas)
+      /** Focus inside the composer card lights the field around it. */
+      const onFocusChange = () => {
+        const active = document.activeElement
+        composerFocused = active !== null && active !== document.body
+          && typeof active.closest === 'function'
+          && active.closest('[data-composer-card]') !== null
+      }
+      window.addEventListener('focusin', onFocusChange, { passive: true })
+      window.addEventListener('focusout', onFocusChange, { passive: true })
       window.addEventListener('pointermove', onPointerMove, { passive: true })
       window.addEventListener('pointerleave', onPointerLeave, { passive: true })
       window.addEventListener('pointerdown', onPointerDown, { passive: true })
@@ -519,6 +719,8 @@
         cancelAnimationFrame(frame)
         observer.disconnect()
         composerObserver.disconnect()
+        window.removeEventListener('focusin', onFocusChange)
+        window.removeEventListener('focusout', onFocusChange)
         window.removeEventListener('pointermove', onPointerMove)
         window.removeEventListener('pointerleave', onPointerLeave)
         window.removeEventListener('pointerdown', onPointerDown)

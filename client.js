@@ -1066,21 +1066,92 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
 
 
 
+
 /* ------------------------------------------------------------- startup splash */
 .dc-splash {
   position: fixed;
   inset: 0;
   z-index: 2147483600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #050507;
   pointer-events: none;
+  animation: dc-splash-out 460ms 1860ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  contain: strict;
 }
 
-.dc-splash-canvas {
+/* Compositor-only animation: every property below is opacity or transform. */
+.dc-splash-grid {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: -2px;
+  background-image: radial-gradient(circle at 1px 1px, rgba(186, 196, 214, 0.5) 0.9px, transparent 1.15px);
+  background-size: 18px 18px;
+  opacity: 0;
+  will-change: opacity;
+  animation: dc-splash-grid-in 620ms 60ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.dc-splash-ring {
+  position: absolute;
+  width: 108vmax;
+  height: 108vmax;
+  border: 1px solid rgba(176, 196, 232, 0.55);
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.08);
+  will-change: transform, opacity;
+  animation: dc-splash-ring 900ms 60ms cubic-bezier(0.16, 0.84, 0.36, 1) forwards;
+}
+
+.dc-splash-mark {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08em;
+  overflow: hidden;
+}
+
+.dc-splash-line {
   display: block;
+  font: 800 clamp(38px, 7.8vw, 108px) / 1.14 "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.09em;
+  color: transparent;
+  background-size: 5px 5px;
+  -webkit-background-clip: text;
+  background-clip: text;
+  opacity: 0;
+  transform: translate3d(0, 14px, 0) scale(0.985);
+  will-change: transform, opacity;
+  animation: dc-splash-line 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.dc-splash-deepseek {
+  background-image: radial-gradient(circle at 1px 1px, #eef0f4 1.1px, transparent 1.35px);
+}
+
+.dc-splash-harness {
+  background-image: radial-gradient(circle at 1px 1px, #7aaaff 1.1px, transparent 1.35px);
+  animation-delay: 170ms;
+}
+
+.dc-splash-sheen {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 34%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0;
+  transform: translate3d(-120%, 0, 0);
+  will-change: transform, opacity;
+  animation: dc-splash-sheen 820ms 1080ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
 
 .dc-splash-veil {
@@ -1089,6 +1160,42 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   background:
     radial-gradient(circle at 50% 46%, rgba(0, 0, 0, 0) 38%, rgba(0, 0, 0, 0.62) 100%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 26%);
+}
+
+@keyframes dc-splash-grid-in {
+  to { opacity: 0.55; }
+}
+
+@keyframes dc-splash-ring {
+  0% { opacity: 0; transform: scale(0.08); }
+  30% { opacity: 0.5; }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+@keyframes dc-splash-line {
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes dc-splash-sheen {
+  0% { opacity: 0; transform: translate3d(-120%, 0, 0); }
+  20% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate3d(300%, 0, 0); }
+}
+
+@keyframes dc-splash-out {
+  to { opacity: 0; visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-splash,
+  .dc-splash-grid,
+  .dc-splash-ring,
+  .dc-splash-line,
+  .dc-splash-sheen {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ------------------------------------------------------------ settings page */
@@ -2072,11 +2179,10 @@ body {
     }
 
     /**
-     * Startup splash: the wordmark assembled out of the dot lattice over the boot screen.
+     * Startup splash: the dot wordmark over the boot screen.
      *
-     * Everything expensive is pre-built: the field is one offscreen bitmap, each word is one
-     * Path2D. A frame then only blits the field, strokes one ring, and fills two clipped word
-     * paths, so the animation stays smooth even while the app is still booting.
+     * The whole animation is CSS transform/opacity so the compositor drives it: no canvas,
+     * no per-frame JavaScript while the app is still booting.
      */
     function dcPlaySplash() {
       if (window.__dcSplashPlayed === true) return
@@ -2087,188 +2193,32 @@ body {
         const layer = document.createElement('div')
         layer.className = 'dc-splash'
         layer.setAttribute('aria-hidden', 'true')
-        const canvas = document.createElement('canvas')
-        canvas.className = 'dc-splash-canvas'
+        const grid = document.createElement('div')
+        grid.className = 'dc-splash-grid'
+        const ring = document.createElement('div')
+        ring.className = 'dc-splash-ring'
+        const mark = document.createElement('div')
+        mark.className = 'dc-splash-mark'
+        const deepseek = document.createElement('span')
+        deepseek.className = 'dc-splash-line dc-splash-deepseek'
+        deepseek.textContent = 'deepseek'
+        const harness = document.createElement('span')
+        harness.className = 'dc-splash-line dc-splash-harness'
+        harness.textContent = 'harness'
+        const sheen = document.createElement('div')
+        sheen.className = 'dc-splash-sheen'
+        mark.append(deepseek, harness, sheen)
         const veil = document.createElement('div')
         veil.className = 'dc-splash-veil'
-        layer.append(canvas, veil)
+        layer.append(grid, ring, mark, veil)
         document.body.appendChild(layer)
-        const context = canvas.getContext('2d')
-        if (context === null) {
-          layer.remove()
-          return
-        }
-
-        const START = performance.now()
-        const END = 2300
-        const FADE_IN = 420
-        const RING = 620
-        const PRINT_FIRST = 260
-        const PRINT_SPAN = 560
-        const PRINT_STAGGER = 130
-        const SHEEN_AT = 1420
-        const SHEEN_SPAN = 760
-        const FADE_OUT = 1740
-        const FADE_OUT_SPAN = 460
-        const dpr = Math.min(1.25, devicePixelRatio || 1)
-        const width = innerWidth
-        const height = innerHeight
-        canvas.width = Math.round(width * dpr)
-        canvas.height = Math.round(height * dpr)
-
-        const fontSize = Math.max(44, Math.min(width * 0.1, height * 0.17, 138))
-        const lineHeight = fontSize * 1.18
-        const centerY = height / 2
-        const lines = [
-          { text: 'deepseek', color: 'rgb(238, 240, 244)', y: centerY - lineHeight / 2 },
-          { text: 'harness', color: 'rgb(122, 170, 255)', y: centerY + lineHeight / 2 },
-        ]
-
-        const buildLine = (line, stagger) => {
-          const measure = document.createElement('canvas').getContext('2d')
-          if (measure === null) return null
-          const font = '700 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
-          const spacing = Math.round(fontSize * 0.1) + 'px'
-          measure.font = font
-          if ('letterSpacing' in measure) measure.letterSpacing = spacing
-          const textWidth = Math.ceil(measure.measureText(line.text).width) + 28
-          const probeHeight = Math.ceil(lineHeight * 1.1)
-          const probe = document.createElement('canvas')
-          probe.width = Math.ceil(textWidth * dpr)
-          probe.height = Math.ceil(probeHeight * dpr)
-          const probeContext = probe.getContext('2d')
-          if (probeContext === null) return null
-          probeContext.scale(dpr, dpr)
-          probeContext.fillStyle = '#fff'
-          probeContext.textAlign = 'center'
-          probeContext.textBaseline = 'middle'
-          probeContext.font = font
-          if ('letterSpacing' in probeContext) probeContext.letterSpacing = spacing
-          probeContext.fillText(line.text, textWidth / 2, probeHeight / 2)
-          const pixels = probeContext.getImageData(0, 0, probe.width, probe.height).data
-          const pitch = Math.max(5, Math.round(fontSize / 15))
-          const radius = pitch * 0.3
-          const left = width / 2 - textWidth / 2
-          const top = line.y - probeHeight / 2
-          const path = new Path2D()
-          let count = 0
-          for (let y = pitch / 2; y < probeHeight; y += pitch) {
-            for (let x = pitch / 2; x < textWidth; x += pitch) {
-              const index = (Math.floor(y * dpr) * probe.width + Math.floor(x * dpr)) * 4 + 3
-              if (pixels[index] < 120) continue
-              path.moveTo(left + x + radius, top + y)
-              path.arc(left + x, top + y, radius, 0, Math.PI * 2)
-              count += 1
-            }
-          }
-          return {
-            path,
-            color: line.color,
-            start: PRINT_FIRST + stagger,
-            left,
-            right: left + textWidth,
-            top,
-            bottom: top + probeHeight,
-            count,
-          }
-        }
-
-        const built = []
-        for (let index = 0; index < lines.length; index += 1) {
-          const line = buildLine(lines[index], index * PRINT_STAGGER)
-          if (line !== null) built.push(line)
-        }
-
-        // Field: drawn once into an offscreen bitmap, then blitted each frame.
-        const field = document.createElement('canvas')
-        field.width = canvas.width
-        field.height = canvas.height
-        const fieldContext = field.getContext('2d')
-        if (fieldContext !== null) {
-          fieldContext.scale(dpr, dpr)
-          const fieldPath = new Path2D()
-          const pitch = 18
-          for (let y = pitch / 2; y < height; y += pitch) {
-            for (let x = pitch / 2; x < width; x += pitch) {
-              fieldPath.moveTo(x + 0.9, y)
-              fieldPath.arc(x, y, 0.9, 0, Math.PI * 2)
-            }
-          }
-          fieldContext.fillStyle = 'rgba(186, 196, 214, 0.5)'
-          fieldContext.fill(fieldPath)
-        }
-
-        const ringRadius = Math.max(width, height) * 0.72
-        let frame = 0
-        let done = false
-        const paint = now => {
-          if (done) return
-          const elapsed = now - START
-          context.setTransform(dpr, 0, 0, dpr, 0, 0)
-          context.clearRect(0, 0, width, height)
-          context.globalCompositeOperation = 'source-over'
-          const fadeOut = elapsed > FADE_OUT
-            ? Math.max(0, 1 - (elapsed - FADE_OUT) / FADE_OUT_SPAN)
-            : 1
-
-          context.globalAlpha = Math.min(1, Math.max(0, elapsed / FADE_IN)) * 0.55 * fadeOut
-          context.drawImage(field, 0, 0, width, height)
-
-          const ringProgress = Math.min(1, Math.max(0, elapsed / RING))
-          if (ringProgress > 0 && ringProgress < 1) {
-            const eased = 1 - Math.pow(1 - ringProgress, 3)
-            context.globalAlpha = 0.2 * (1 - eased) * fadeOut
-            context.strokeStyle = 'rgba(190, 205, 230, 0.9)'
-            context.lineWidth = 1
-            context.beginPath()
-            context.arc(width / 2, centerY, ringRadius * eased, 0, Math.PI * 2)
-            context.stroke()
-          }
-
-          const sheenProgress = elapsed > SHEEN_AT
-            ? Math.min(1, (elapsed - SHEEN_AT) / SHEEN_SPAN)
-            : -1
-          const sheenX = sheenProgress < 0
-            ? -1e4
-            : width / 2 - width * 0.42 + sheenProgress * width * 0.84
-
-          for (const line of built) {
-            const printProgress = Math.min(1, Math.max(0, (elapsed - line.start) / PRINT_SPAN))
-            if (printProgress <= 0) continue
-            const title = elapsed < line.start
-            const frontier = line.left + (line.right - line.left) * (title ? 0 : printProgress)
-            context.save()
-            context.beginPath()
-            context.rect(0, 0, frontier, height)
-            context.clip()
-            context.globalAlpha = fadeOut
-            context.fillStyle = line.color
-            context.fill(line.path)
-            if (sheenProgress >= 0) {
-              const band = context.createLinearGradient(sheenX - 220, 0, sheenX + 220, 0)
-              band.addColorStop(0, 'rgba(255, 255, 255, 0)')
-              band.addColorStop(0.5, 'rgba(255, 255, 255, 0.55)')
-              band.addColorStop(1, 'rgba(255, 255, 255, 0)')
-              context.globalAlpha = fadeOut * 0.5
-              context.fillStyle = band
-              context.fillRect(sheenX - 220, line.top, 440, line.bottom - line.top)
-            }
-            context.restore()
-          }
-
-          context.globalAlpha = 1
-          if (elapsed < END) {
-            frame = requestAnimationFrame(paint)
-          } else {
-            done = true
-          }
-        }
-        frame = requestAnimationFrame(paint)
-        setTimeout(() => {
-          done = true
-          cancelAnimationFrame(frame)
+        const remove = () => {
           if (layer.isConnected) layer.remove()
-        }, END + 120)
+        }
+        layer.addEventListener('animationend', event => {
+          if (event.animationName === 'dc-splash-out') remove()
+        })
+        setTimeout(remove, 3200)
       } catch (error) {
         console.warn('[deepclear-ui] splash failed', error)
       }

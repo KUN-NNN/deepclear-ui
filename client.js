@@ -1974,14 +1974,15 @@ body {
           if (rect.width < 40 || rect.height < 24) return null
           return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
         }
-        // The word lands one row lower: the send-button row under the text field.
+        // The word lands in the bottom band of the card, where the send row sits.
         const glyphAreaOf = (card, input) => {
           if (card === null || input === null) return null
           const cardRect = card.getBoundingClientRect()
-          const top = input.top + input.height
-          const height = cardRect.bottom - top
-          if (height < 22 || cardRect.width < 60) return null
-          return { left: cardRect.left, top, width: cardRect.width, height }
+          if (cardRect.width < 80 || cardRect.height < 60) return null
+          const band = Math.max(30, Math.min(46, cardRect.height * 0.34))
+          const top = cardRect.bottom - band - 3
+          if (top <= input.top + input.height * 0.5) return null
+          return { left: cardRect.left, top, width: cardRect.width, height: band }
         }
 
         // Sample MAX into the dot grid once per geometry; the glyph never moves.

@@ -2035,7 +2035,7 @@ body {
           if (fieldAlpha > 0.01) {
             const centerX = area.left + area.width / 2
             const pitch = 4
-            context.fillStyle = '#ffffff'
+            context.fillStyle = document.body.hasAttribute('data-ds-dark-theme') ? '#ffffff' : '#3f444c'
             // While the model thinks, a highlight sweeps from the middle of the band out
             // to both edges, so the field reads as a pulse rather than a static texture.
             const half = area.width / 2 + 60
@@ -2069,7 +2069,8 @@ body {
           if (glyphAlpha > 0.01) {
             const glyph = glyphOf(area)
             if (glyph !== null) {
-              const ink = state.isMax ? accent : '#ffffff'
+              const dark = document.body.hasAttribute('data-ds-dark-theme')
+              const ink = state.isMax ? accent : (dark ? '#ffffff' : '#171719')
               context.fillStyle = ink
               context.shadowColor = ink
               context.shadowBlur = 6

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.9
+
+- The two toggle states read at the same size: both states now carry a 1px stroke, the
+  bright track is slightly softened and the dim track slightly brighter, so the bright fill
+  no longer looks fatter than the dim one.
+
 ## 1.6.8
 
 - The capsule track shrinks to 42x24 (`rx = 12`) while the knob stays an 18px circle.

@@ -1702,15 +1702,23 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       }, [
         h('rect', {
           key: 'track',
-          x: 0,
-          y: 0,
-          width: 42,
-          height: 24,
-          rx: 12,
-          ry: 12,
+          x: 0.5,
+          y: 0.5,
+          width: 41,
+          height: 23,
+          rx: 11.5,
+          ry: 11.5,
           style: {
-            fill: on ? 'var(--dsw-alias-label-primary)' : 'color-mix(in srgb, var(--dsw-alias-label-tertiary) 34%, transparent)',
-            transition: 'fill 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+            fill: on
+              ? 'color-mix(in srgb, var(--dsw-alias-label-primary) 94%, transparent)'
+              : 'color-mix(in srgb, var(--dsw-alias-label-tertiary) 44%, transparent)',
+            // A stroke in both states keeps the outline explicit, so the bright track
+            // and the dim one read at the same size instead of one looking fatter.
+            stroke: on
+              ? 'color-mix(in srgb, var(--dsw-alias-label-primary) 94%, transparent)'
+              : 'color-mix(in srgb, var(--dsw-alias-label-tertiary) 62%, transparent)',
+            strokeWidth: 1,
+            transition: 'fill 200ms cubic-bezier(0.22, 1, 0.36, 1), stroke 200ms cubic-bezier(0.22, 1, 0.36, 1)',
           },
         }),
         h('g', {

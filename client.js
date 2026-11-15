@@ -876,64 +876,6 @@ body:has(canvas.dwe-whale) [data-composer-card] {
   backdrop-filter: blur(18px);
 }
 
-/* Dot field behind the composer (Session only; the blank home keeps a clean card). */
-
-body {
-  --dc-field-dot: rgba(102, 108, 120, 0.6);
-}
-
-body[data-ds-dark-theme] {
-  --dc-field-dot: rgba(236, 238, 242, 0.4);
-}
-
-/* Session: a wide floor of dots pinned to the bottom of the window, fading up over
-   a long range so the field reads as depth rather than a stripe. */
-:root:not(.dc-off-composerfield) body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card])::before {
-  content: '';
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 108px;
-  pointer-events: none;
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    var(--dc-field-dot) 0.9px,
-    transparent 1.1px
-  );
-  background-size: 8px 8px;
-  background-position: 0 0;
-  -webkit-mask-image: linear-gradient(
-    to top,
-    #000 0%,
-    #000 34%,
-    rgba(0, 0, 0, 0.62) 60%,
-    rgba(0, 0, 0, 0.26) 84%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to top,
-    #000 0%,
-    #000 34%,
-    rgba(0, 0, 0, 0.62) 60%,
-    rgba(0, 0, 0, 0.26) 84%,
-    transparent 100%
-  );
-  opacity: 0.15;
-  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-:root:not(.dc-off-composerfield) body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::before {
-  opacity: 0.3;
-}
-
-
-@media (prefers-reduced-motion: reduce) {
-  :root:not(.dc-off-composerfield) body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::before {
-    animation: none;
-  }
-}
-
 /* Composer focus: a soft whale-blue ring fades in under the card's own hairline
    instead of recolouring it (a rebinding token switches instantly and reads as a
    pop). Both states declare the same shadow layers so the transition interpolates
@@ -2170,7 +2112,7 @@ body {
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
     const DC_DEFAULT_SETTINGS = Object.freeze(Object.fromEntries([
       'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
-      'composerField', 'glass', 'bold', 'focusRing', 'diff',
+      'glass', 'bold', 'focusRing', 'diff',
       'reading', 'code',
     ].map(key => [key, true])))
     const DC_OFF_CLASS = Object.freeze(Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)
@@ -2363,7 +2305,6 @@ body {
           ripple: ['\u6307\u9488\u6d9f\u6f2a', '\u9f20\u6807\u5212\u8fc7\u70b9\u9635\u65f6\u8361\u5f00\u7684\u5149\u73af'],
           thinkingSphere: ['\u70b9\u9635\u7403', '\u601d\u8003\u65f6\u65cb\u8f6c\u7684\u5c0f\u7403'],
           thinkingLabel: ['英文思考文案', '把状态行换成 “Deep thinking for 12s. . .”'],
-          composerField: ['\u8f93\u5165\u6846\u70b9\u9635', '\u4f1a\u8bdd\u9875\u8f93\u5165\u6846\u4e0b\u65b9\u7684\u70b9\u9635\u5e26'],
           glass: ['\u78e8\u7802\u73bb\u7483', '\u4f1a\u8bdd\u9875\u8f93\u5165\u6846\u7684\u534a\u900f\u660e\u6548\u679c'],
           stats: ['\u7528\u91cf\u8bfb\u6570', '\u5728\u53d1\u9001\u6309\u94ae\u6392\u663e\u793a\u4e0a\u4e0b\u6587\u4e0e Token \u7528\u91cf'],
           bold: ['\u9cb8\u9c7c\u84dd\u52a0\u7c97', '\u804a\u5929\u91cc\u7684\u52a0\u7c97\u6587\u5b57\u53d8\u6210\u9cb8\u9c7c\u84dd'],
@@ -2385,7 +2326,6 @@ body {
           ripple: ['Pointer ripples', 'Light rings where the pointer crosses the field'],
           thinkingSphere: ['Dot sphere', 'The rotating point-sphere beside the live status'],
           thinkingLabel: ['English status label', 'Replace the status row with “Deep thinking for 12s. . .”'],
-          composerField: ['Dot floor', 'The dot band under the input on session pages'],
           glass: ['Frosted glass', 'Translucent input card on session pages'],
           bold: ['Whale-blue bold', 'Bold runs in chat prose take the accent colour'],
           focusRing: ['Focus ring', 'The soft ring while the composer has focus'],
@@ -2523,7 +2463,7 @@ body {
           item('thinkingSphere'), item('thinkingLabel'),
         ]),
         group(copy.groups.composer, [
-          item('composerField'), item('glass'),
+          item('glass'),
         ]),
         group(copy.groups.accents, [
           item('bold'), item('focusRing'), item('diff'),

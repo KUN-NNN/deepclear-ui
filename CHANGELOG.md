@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.4
+
+- The settings sheet paints from the app's own surface tokens (`--dsw-alias-bg-base` under
+  `--dsw-alias-bg-layer-1`) instead of hand-picked greys, which removes the blue cast and
+  keeps it solid in both themes.
+
 ## 1.5.3
 
 - The sidebar sheet is opaque: the shared menu surface token carries alpha, so it now paints

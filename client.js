@@ -1931,6 +1931,208 @@ body {
       })
     }
 
+    /**
+     * MAX celebration inside the composer.
+     *
+     * When the reasoning effort selector reads "Max", a white dot field unfolds from the
+     * middle of the input to both sides, then the middle dots spell MAX in blue. Purely
+     * decorative: it never touches the composer DOM, only our overlay canvas clipped to it.
+     */
+    function DcMaxField() {
+      const canvasRef = React.useRef(null)
+      React.useEffect(() => {
+        const canvas = canvasRef.current
+        if (canvas === null) return
+        const context = canvas.getContext('2d')
+        if (context === null) return
+        const motion = matchMedia('(prefers-reduced-motion: reduce)')
+        const state = {
+          active: false,
+          started: 0,
+          fade: 0,
+          frame: 0,
+          live: false,
+          lock: '',
+          glyph: null,
+        }
+        let stopped = false
+        let dpr = Math.min(2, devicePixelRatio || 1)
+
+        const cardOf = () => document.querySelector('[data-composer-card]')
+        const effortIsMax = card => {
+          if (card === null) return false
+          const node = card.querySelector('[class*="_triggerEffort"]')
+          if (node === null) return false
+          const text = (node.textContent || '').trim().toLowerCase()
+          return text === 'max' || text.endsWith('max')
+        }
+        const areaOf = card => {
+          if (card === null) return null
+          const editable = card.querySelector('[contenteditable="true"], [role="textbox"], textarea')
+          const node = editable === null ? card : editable
+          const rect = node.getBoundingClientRect()
+          if (rect.width < 40 || rect.height < 24) return null
+          return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+        }
+
+        // Sample MAX into the dot grid once per geometry; the glyph never moves.
+        const glyphOf = area => {
+          const key = Math.round(area.width) + 'x' + Math.round(area.height)
+          if (state.glyph !== null && state.lock === key) return state.glyph
+          const fontSize = Math.max(26, Math.min(area.height * 0.95, area.width * 0.42, 110))
+          const probe = document.createElement('canvas')
+          probe.width = Math.ceil(area.width)
+          probe.height = Math.ceil(area.height)
+          const probeContext = probe.getContext('2d')
+          if (probeContext === null) return null
+          probeContext.clearRect(0, 0, probe.width, probe.height)
+          probeContext.fillStyle = '#fff'
+          probeContext.textAlign = 'center'
+          probeContext.textBaseline = 'middle'
+          probeContext.font = 'italic 900 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
+          if ('letterSpacing' in probeContext) probeContext.letterSpacing = Math.round(fontSize * 0.06) + 'px'
+          probeContext.fillText('MAX', probe.width / 2, probe.height / 2)
+          const pixels = probeContext.getImageData(0, 0, probe.width, probe.height).data
+          const dots = []
+          const pitch = 3
+          for (let y = pitch / 2; y < probe.height; y += pitch) {
+            for (let x = pitch / 2; x < probe.width; x += pitch) {
+              const index = (Math.floor(y) * probe.width + Math.floor(x)) * 4 + 3
+              if (pixels[index] > 110) dots.push({ x: x, y: y })
+            }
+          }
+          state.glyph = { dots, width: probe.width, height: probe.height }
+          state.lock = key
+          return state.glyph
+        }
+
+        const paint = () => {
+          state.frame = 0
+          if (stopped || document.hidden) return
+          const width = innerWidth
+          const height = innerHeight
+          if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+            canvas.width = Math.round(width * dpr)
+            canvas.height = Math.round(height * dpr)
+          }
+          context.setTransform(dpr, 0, 0, dpr, 0, 0)
+          context.clearRect(0, 0, width, height)
+          const card = cardOf()
+          const area = areaOf(card)
+          if (area === null) {
+            state.live = false
+            return
+          }
+          const now = performance.now()
+          const target = state.active ? 1 : 0
+          state.fade = motion.matches ? target : state.fade + (target - state.fade) * 0.2
+          if (!state.active && state.fade < 0.02) {
+            state.fade = 0
+            state.live = false
+            return
+          }
+          const style = getComputedStyle(card)
+          const radius = parseFloat(style.borderTopLeftRadius) || 12
+          const accent = (style.getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
+          const elapsed = now - state.started
+          const expand = motion.matches ? 1 : Math.min(1, Math.max(0, elapsed / 780))
+          const eased = 1 - Math.pow(1 - expand, 3)
+          const reach = Math.max(0, (area.width / 2 + 60) * eased)
+          const glyphIn = motion.matches ? 1 : Math.min(1, Math.max(0, (elapsed - 760) / 680))
+          const glyphAlpha = Math.pow(glyphIn, 2) * state.fade
+          const fieldAlpha = 0.3 * state.fade
+
+          context.save()
+          context.beginPath()
+          if (typeof context.roundRect === 'function') {
+            context.roundRect(area.left, area.top, area.width, area.height, radius)
+          } else {
+            context.rect(area.left, area.top, area.width, area.height)
+          }
+          context.clip()
+
+          if (fieldAlpha > 0.01) {
+            const centerX = area.left + area.width / 2
+            const pitch = 4
+            context.fillStyle = '#ffffff'
+            const startY = Math.floor(area.top / pitch) * pitch + pitch / 2
+            for (let y = startY; y < area.top + area.height; y += pitch) {
+              const startX = Math.floor(area.left / pitch) * pitch + pitch / 2
+              for (let x = startX; x < area.left + area.width; x += pitch) {
+                const spread = Math.abs(x - centerX)
+                if (spread > reach) continue
+                const alpha = fieldAlpha * (1 - spread / (area.width / 2 + 60))
+                if (alpha < 0.01) continue
+                context.globalAlpha = Math.min(1, alpha)
+                context.beginPath()
+                context.arc(x, y, 0.85, 0, Math.PI * 2)
+                context.fill()
+              }
+            }
+          }
+
+          if (glyphAlpha > 0.01) {
+            const glyph = glyphOf(area)
+            if (glyph !== null) {
+              context.fillStyle = accent
+              context.shadowColor = accent
+              context.shadowBlur = 6
+              for (const dot of glyph.dots) {
+                context.globalAlpha = Math.min(1, glyphAlpha)
+                context.beginPath()
+                context.arc(area.left + dot.x, area.top + dot.y, 0.95, 0, Math.PI * 2)
+                context.fill()
+              }
+              context.shadowBlur = 0
+            }
+          }
+          context.restore()
+          context.globalAlpha = 1
+          if (state.active || state.fade >= 0.02) {
+            state.frame = requestAnimationFrame(paint)
+            state.live = true
+          } else {
+            state.live = false
+          }
+        }
+
+        const wake = () => {
+          if (stopped || state.live) return
+          state.live = true
+          if (state.frame === 0) state.frame = requestAnimationFrame(paint)
+        }
+
+        const sync = () => {
+          const card = cardOf()
+          const next = effortIsMax(card)
+          if (next !== state.active) {
+            state.active = next
+            state.glyph = null
+            if (next) state.started = performance.now()
+            wake()
+          } else if (next && !state.live) {
+            wake()
+          }
+        }
+
+        const observer = new MutationObserver(sync)
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+        const timer = setInterval(sync, 600)
+        window.addEventListener('resize', sync)
+        sync()
+        return () => {
+          stopped = true
+          observer.disconnect()
+          clearInterval(timer)
+          window.removeEventListener('resize', sync)
+          if (state.frame !== 0) cancelAnimationFrame(state.frame)
+          state.frame = 0
+          state.live = false
+        }
+      }, [])
+      return h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+    }
+
     /* deepclear runtime:start */
     // Profile settings and token layers; embedded into client.js by build-runtime.mjs.
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
@@ -2591,6 +2793,7 @@ body {
         add('shell.overlay', { id: 'dc-ambient', order: 5 }, DcOverlay)
         add('shell.overlay', { id: 'dc-sidebar-dots', order: 6 }, DcSidebarDots)
         add('shell.overlay', { id: 'dc-caret-trail', order: 4 }, DcCaretTrail)
+        add('shell.overlay', { id: 'dc-max-field', order: 3 }, DcMaxField)
         // Package name, distinct from the Host entry id even though both currently match.
         add('plugins.bundle.config', { key: 'deepclear-ui' }, DcSettingsPage)
       },

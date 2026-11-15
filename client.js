@@ -1715,11 +1715,12 @@ body {
         const motion = matchMedia('(prefers-reduced-motion: reduce)')
         if (motion.matches) return undefined
         const trail = []
-        const LIFE = 520
+        const LIFE = 650
         const STEP = 3
         let stopped = false
         let frame = 0
         let last = null
+        let trailCard = null
         let dpr = Math.min(2, devicePixelRatio || 1)
 
         const caretOf = () => {
@@ -1793,8 +1794,10 @@ body {
           const caret = caretOf()
           if (caret === null) {
             last = null
+            trailCard = null
             return
           }
+          trailCard = caret.card
           const now = performance.now()
           if (last !== null) {
             const sameCard = last.card === caret.card
@@ -1817,8 +1820,11 @@ body {
           context.clearRect(0, 0, width, height)
           const now = performance.now()
           while (trail.length > 0 && now - trail[0].born > LIFE) trail.shift()
-          if (trail.length === 0) return
-          const card = trail[trail.length - 1].card
+          if (trail.length === 0) {
+            trailCard = null
+            return
+          }
+          const card = trailCard
           let clip = null
           let radius = 12
           if (card !== null && card.isConnected) {
@@ -1841,11 +1847,11 @@ body {
           for (const point of trail) {
             const age = (now - point.born) / LIFE
             if (age >= 1) continue
-            const alpha = Math.pow(1 - age, 1.5) * 0.55
+            const alpha = Math.pow(1 - age, 1.4) * 0.85
             if (alpha < 0.02) continue
             context.globalAlpha = alpha
             context.beginPath()
-            context.arc(point.x, point.y, 0.9, 0, Math.PI * 2)
+            context.arc(point.x, point.y, 1.15, 0, Math.PI * 2)
             context.fill()
           }
           context.restore()
@@ -1867,14 +1873,20 @@ body {
         const onActivity = () => sample()
         document.addEventListener('selectionchange', onActivity)
         document.addEventListener('input', onActivity, true)
+        document.addEventListener('beforeinput', onActivity, true)
+        document.addEventListener('compositionupdate', onActivity, true)
         document.addEventListener('keyup', onActivity, true)
+        document.addEventListener('click', onActivity, true)
         document.addEventListener('pointerup', onActivity, true)
         window.addEventListener('resize', wake)
         return () => {
           stopped = true
           document.removeEventListener('selectionchange', onActivity)
           document.removeEventListener('input', onActivity, true)
+          document.removeEventListener('beforeinput', onActivity, true)
+          document.removeEventListener('compositionupdate', onActivity, true)
           document.removeEventListener('keyup', onActivity, true)
+          document.removeEventListener('click', onActivity, true)
           document.removeEventListener('pointerup', onActivity, true)
           window.removeEventListener('resize', wake)
           if (frame !== 0) cancelAnimationFrame(frame)
@@ -1882,7 +1894,12 @@ body {
           trail.length = 0
         }
       }, [])
-      return h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+      return h('canvas', {
+        ref: canvasRef,
+        className: 'dc-overlay dc-caret-layer',
+        'aria-hidden': 'true',
+        style: { zIndex: 2147483000 },
+      })
     }
 
     /* deepclear runtime:start */

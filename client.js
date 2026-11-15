@@ -2015,7 +2015,18 @@ body {
           const elapsed = now - state.started
           const expand = motion.matches ? 1 : Math.min(1, Math.max(0, elapsed / 780))
           const eased = 1 - Math.pow(1 - expand, 3)
-          const reach = Math.max(0, (area.width / 2 + 60) * eased)
+          // Hard guarantee: once the entrance window has passed the field covers the full
+          // card, whatever the easing math did on the way there.
+          const reach = elapsed > 900 ? area.width : Math.max(0, (area.width / 2 + 60) * eased)
+          window.__dcMaxDebug = {
+            active: state.active,
+            thinking: state.thinking,
+            elapsed: Math.round(elapsed),
+            width: Math.round(area.width),
+            reach: Math.round(reach),
+            fade: Math.round(state.fade * 100) / 100,
+            started: Math.round(state.started),
+          }
           const glyphIn = motion.matches ? 1 : Math.min(1, Math.max(0, (elapsed - 760) / 680))
           const glyphAlpha = Math.pow(glyphIn, 2) * state.fade
           const fieldAlpha = 0.3 * state.fade

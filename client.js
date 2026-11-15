@@ -2120,12 +2120,18 @@ body {
           context.globalAlpha = 1
           if (window.__dcDebugPaint !== false) {
             const info = window.__dcMaxDebug || {}
+            context.strokeStyle = '#ff5d5d'
+            context.lineWidth = 1
+            context.strokeRect(area.left + 0.5, area.top + 0.5, area.width - 1, area.height - 1)
             context.fillStyle = '#ff5d5d'
             context.textBaseline = 'top'
-            context.font = 'bold 14px monospace'
+            context.font = 'bold 16px monospace'
             context.fillText(
-              'B6 W' + info.width + ' R' + info.reach + ' E' + info.elapsed + ' F' + info.fade + ' L' + Math.round(area.left),
-              Math.max(4, area.left + 6), area.top + 2)
+              'B7 stage L' + Math.round(area.left) + ' T' + Math.round(area.top) + ' W' + Math.round(area.width) + ' H' + Math.round(area.height),
+              Math.max(4, area.left + 8), Math.max(4, area.top - 20))
+            context.fillText(
+              'view W' + innerWidth + ' reach ' + Math.round(reach) + ' eased ' + Math.round(state.eased * 100) / 100 + ' fade ' + Math.round(state.fade * 100) / 100,
+              Math.max(4, area.left + 8), Math.max(4, area.top + area.height - 20))
           }
           // Keep the loop alive while the effect is on: a stopped loop used to leave a
           // half-expanded field frozen on screen after a width change.

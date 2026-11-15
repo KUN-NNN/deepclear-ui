@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.4
+
+- Switch knob matches the shipped toggle exactly: a 20px squircle (7px corner radius) inset
+  4px from the track, instead of a full-height circle.
+
 ## 1.6.3
 
 - Switches follow the shipped toggle: a 48x28 capsule that inverts when switched on — grey

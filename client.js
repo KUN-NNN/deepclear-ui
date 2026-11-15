@@ -1902,7 +1902,7 @@ body {
           glyph: null,
         }
         let stopped = false
-        let dpr = Math.min(2, devicePixelRatio || 1)
+        let dpr = Math.min(1.5, devicePixelRatio || 1)
 
         const cardOf = () => document.querySelector('[data-composer-card]')
         const effortLabelOf = card => {
@@ -2035,13 +2035,16 @@ body {
           if (fieldAlpha > 0.01) {
             const centerX = area.left + area.width / 2
             const pitch = 4
-            context.fillStyle = document.body.hasAttribute('data-ds-dark-theme') ? '#ffffff' : '#3f444c'
+            const dark = document.body.hasAttribute('data-ds-dark-theme')
             // While the model thinks, a highlight sweeps from the middle of the band out
             // to both edges, so the field reads as a pulse rather than a static texture.
             const half = area.width / 2 + 60
             const wave = state.thinking
               ? (((now - state.pulseStart) % 1500) / 1500) * (area.width / 2 + 80)
               : -1e4
+            // Dots are collected into alpha buckets and filled once per bucket: thousands
+            // of individual fills is what made the sweep stutter.
+            const buckets = new Map()
             const startY = Math.floor(area.top / pitch) * pitch + pitch / 2
             for (let y = startY; y < area.top + area.height; y += pitch) {
               const startX = Math.floor(area.left / pitch) * pitch + pitch / 2
@@ -2058,11 +2061,25 @@ body {
                 }
                 const alpha = base + highlight
                 if (alpha < 0.01) continue
-                context.globalAlpha = Math.min(1, alpha)
-                context.beginPath()
-                context.arc(x, y, 0.85 + highlight * 0.55, 0, Math.PI * 2)
-                context.fill()
+                const level = Math.min(20, Math.round(alpha * 20))
+                if (level <= 0) continue
+                let bucket = buckets.get(level)
+                if (bucket === undefined) {
+                  bucket = []
+                  buckets.set(level, bucket)
+                }
+                bucket.push(x, y, 0.85 + highlight * 0.55)
               }
+            }
+            context.fillStyle = dark ? '#ffffff' : '#3f444c'
+            for (const [level, points] of buckets) {
+              context.globalAlpha = Math.min(1, level / 20)
+              context.beginPath()
+              for (let index = 0; index < points.length; index += 3) {
+                context.moveTo(points[index] + points[index + 2], points[index + 1])
+                context.arc(points[index], points[index + 1], points[index + 2], 0, Math.PI * 2)
+              }
+              context.fill()
             }
           }
 
@@ -2071,19 +2088,24 @@ body {
             if (glyph !== null) {
               const dark = document.body.hasAttribute('data-ds-dark-theme')
               const ink = state.isMax ? accent : (dark ? '#ffffff' : '#171719')
+              // One path per pass; a per-dot shadowBlur is far too expensive here.
               context.fillStyle = ink
-              context.shadowColor = ink
-              context.shadowBlur = 6
+              context.globalAlpha = Math.min(1, glyphAlpha) * 0.18
+              context.beginPath()
               for (const dot of glyph.dots) {
-                context.globalAlpha = Math.min(1, glyphAlpha)
-                context.beginPath()
-                context.arc(area.left + dot.x, area.top + dot.y, 0.95, 0, Math.PI * 2)
-                context.fill()
+                context.moveTo(area.left + dot.x + 1.6, area.top + dot.y)
+                context.arc(area.left + dot.x, area.top + dot.y, 1.6, 0, Math.PI * 2)
               }
-              context.shadowBlur = 0
+              context.fill()
+              context.globalAlpha = Math.min(1, glyphAlpha)
+              context.beginPath()
+              for (const dot of glyph.dots) {
+                context.moveTo(area.left + dot.x + 0.95, area.top + dot.y)
+                context.arc(area.left + dot.x, area.top + dot.y, 0.95, 0, Math.PI * 2)
+              }
+              context.fill()
             }
           }
-          context.restore()
           context.globalAlpha = 1
           if (state.thinking || Math.abs(state.fade - target) > 0.004) {
             state.frame = requestAnimationFrame(paint)
@@ -2123,7 +2145,16 @@ body {
           }
         }
 
-        const observer = new MutationObserver(sync)
+        let syncQueued = false
+        const scheduleSync = () => {
+          if (syncQueued) return
+          syncQueued = true
+          requestAnimationFrame(() => {
+            syncQueued = false
+            sync()
+          })
+        }
+        const observer = new MutationObserver(scheduleSync)
         observer.observe(document.body, { childList: true, subtree: true, characterData: true })
         const timer = setInterval(sync, 600)
         window.addEventListener('resize', sync)

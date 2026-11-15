@@ -1276,7 +1276,9 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   flex-direction: column;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 14px;
-  background: var(--dsw-specific-menu);
+  /* Opaque on purpose: the shared menu token carries alpha, and the dot field behind
+     the sheet would otherwise read through the panel. */
+  background-color: #f6f6f8;
   box-shadow: var(--dsw-elevation-panel, 0 18px 48px rgba(0, 0, 0, 0.42));
   overflow: hidden;
   animation: dc-sheet-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -1285,6 +1287,10 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
 @keyframes dc-sheet-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+body[data-ds-dark-theme] .dc-sheet-panel {
+  background-color: #1d1d21;
 }
 
 .dc-sheet-head {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.3
+
+- The sidebar sheet is opaque: the shared menu surface token carries alpha, so it now paints
+  a solid panel colour per theme instead of letting the dot field show through.
+
 ## 1.5.2
 
 - Fix: the nine-dot icon component was lost while the settings page was rewritten for the

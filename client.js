@@ -1775,15 +1775,15 @@ body {
           if (distance < 1.5) return
           // A line wrap or a jump to another spot is not a trail; only same-line motion is.
           if (distance > 90 || Math.abs(deviceY) > 6) return
-          const midFrom = from.y + from.height / 2
-          const midTo = to.y + to.height / 2
+          const topFrom = from.y
+          const topTo = to.y
           const steps = Math.max(1, Math.min(40, Math.round(distance / STEP)))
           for (let index = 1; index <= steps; index += 1) {
             const t = index / steps
             trail.push({
               x: from.x + deviceX * t,
-              y: midFrom + (midTo - midFrom) * t,
-              height: to.height,
+              y: topFrom + (topTo - topFrom) * t,
+              height: to.height || 18,
               born: now - (steps - index) * 6,
             })
           }
@@ -1849,10 +1849,13 @@ body {
             if (age >= 1) continue
             const alpha = Math.pow(1 - age, 1.4) * 0.85
             if (alpha < 0.02) continue
+            // Fill the whole caret: a vertical column of dots, not a single point.
             context.globalAlpha = alpha
-            context.beginPath()
-            context.arc(point.x, point.y, 1.15, 0, Math.PI * 2)
-            context.fill()
+            for (let offset = 1; offset < point.height - 0.5; offset += 3) {
+              context.beginPath()
+              context.arc(point.x, point.y + offset, 1.05, 0, Math.PI * 2)
+              context.fill()
+            }
           }
           context.restore()
           context.globalAlpha = 1

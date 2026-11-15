@@ -1902,6 +1902,7 @@ body {
           word: '',
           isMax: false,
           width: 0,
+          eased: 0,
           thinking: false,
           pulseStart: 0,
           started: 0,
@@ -2023,10 +2024,10 @@ body {
           const accent = (style.getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
           const elapsed = now - state.started
           const expand = motion.matches ? 1 : Math.min(1, Math.max(0, elapsed / 780))
-          const eased = 1 - Math.pow(1 - expand, 3)
-          // Hard guarantee: once the entrance window has passed the field covers the full
-          // card, whatever the easing math did on the way there.
-          const reach = elapsed > 900 ? area.width : Math.max(0, (area.width / 2 + 60) * eased)
+          // Monotonic: the spread only ever grows, so a replayed entrance (a width change,
+          // a re-render) can never shrink the field back to a narrow band.
+          state.eased = Math.max(state.eased, 1 - Math.pow(1 - expand, 3))
+          const reach = state.eased >= 1 ? area.width : (area.width / 2 + 60) * state.eased
           window.__dcMaxDebug = {
             active: state.active,
             thinking: state.thinking,
@@ -2150,9 +2151,8 @@ body {
           }
           const syncArea = glyphAreaOf(card)
           const syncWidth = syncArea === null ? 0 : Math.round(syncArea.width)
-          if (syncWidth > 0 && Math.abs(syncWidth - state.width) > 16) {
+          if (syncWidth > 0 && Math.abs(syncWidth - state.width) > 2) {
             state.width = syncWidth
-            state.started = performance.now()
             state.glyph = null
             wake()
           }
@@ -2165,6 +2165,7 @@ body {
             state.word = word
             state.isMax = word === 'MAX'
             state.started = performance.now()
+            state.eased = 0
             state.glyph = null
             wake()
           } else if (!state.live) {
@@ -2183,7 +2184,9 @@ body {
         }
         const observer = new MutationObserver(scheduleSync)
         observer.observe(document.body, { childList: true, subtree: true, characterData: true })
-        const timer = setInterval(sync, 600)
+        // Measure the composer once a second and adapt: layout changes inside a fixed
+        // window never fire `resize`, so the poll is the reliable trigger.
+        const timer = setInterval(sync, 1000)
         window.addEventListener('resize', sync)
         document.addEventListener('scroll', sync, true)
         sync()

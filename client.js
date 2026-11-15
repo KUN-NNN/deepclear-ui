@@ -1065,65 +1065,30 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
 }
 
 
+
 /* ------------------------------------------------------------- startup splash */
 .dc-splash {
   position: fixed;
   inset: 0;
   z-index: 2147483600;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.1em;
-  background: #060608;
+  background: #050507;
   pointer-events: none;
-  animation: dc-splash-out 420ms 2100ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
-.dc-splash-line {
+.dc-splash-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: block;
-  font: 800 clamp(36px, 7.4vw, 104px) / 1.12 "Segoe UI", system-ui, sans-serif;
-  letter-spacing: 0.09em;
-  color: transparent;
-  background-size: 5px 5px;
-  -webkit-background-clip: text;
-  background-clip: text;
-  clip-path: inset(0 100% 0 0);
-  animation:
-    dc-splash-show 120ms linear both,
-    dc-splash-print 720ms steps(38, end) both;
 }
 
-.dc-splash-deepseek {
-  background-image: radial-gradient(circle at 1px 1px, #eef0f4 1.1px, transparent 1.35px);
-}
-
-.dc-splash-harness {
-  background-image: radial-gradient(circle at 1px 1px, #7aaaff 1.1px, transparent 1.35px);
-  animation-delay: 0ms, 240ms;
-}
-
-@keyframes dc-splash-show {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes dc-splash-print {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-
-@keyframes dc-splash-out {
-  to { opacity: 0; visibility: hidden; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dc-splash,
-  .dc-splash-line {
-    animation: none;
-    clip-path: inset(0 0 0 0);
-    opacity: 1;
-  }
+.dc-splash-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(0, 0, 0, 0) 38%, rgba(0, 0, 0, 0.62) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 26%);
 }
 
 /* ------------------------------------------------------------ settings page */
@@ -2107,33 +2072,193 @@ body {
     }
 
     /**
-     * Startup splash: the wordmark printed in dots over the boot screen, then it wipes
-     * away. Pure DOM + CSS so it can run the moment the client half applies.
+     * Startup splash: the wordmark assembled out of the dot lattice over the boot screen.
+     *
+     * Sequence: a faint field surfaces, a ring travels outward from the centre, the two
+     * lines print dot by dot from left to right (deepseek white, harness whale blue), a
+     * light sheen crosses the wordmark, then everything fades to the app.
      */
     function dcPlaySplash() {
       if (window.__dcSplashPlayed === true) return
       window.__dcSplashPlayed = true
       try {
-        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
         if (typeof document === 'undefined' || document.body === null) return
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
         const layer = document.createElement('div')
         layer.className = 'dc-splash'
         layer.setAttribute('aria-hidden', 'true')
-        const deepseek = document.createElement('span')
-        deepseek.className = 'dc-splash-line dc-splash-deepseek'
-        deepseek.textContent = 'deepseek'
-        const harness = document.createElement('span')
-        harness.className = 'dc-splash-line dc-splash-harness'
-        harness.textContent = 'harness'
-        layer.append(deepseek, harness)
+        const canvas = document.createElement('canvas')
+        canvas.className = 'dc-splash-canvas'
+        const veil = document.createElement('div')
+        veil.className = 'dc-splash-veil'
+        layer.append(canvas, veil)
         document.body.appendChild(layer)
-        const remove = () => {
-          if (layer.isConnected) layer.remove()
+        const context = canvas.getContext('2d')
+        if (context === null) {
+          layer.remove()
+          return
         }
-        layer.addEventListener('animationend', event => {
-          if (event.animationName === 'dc-splash-out') remove()
-        })
-        setTimeout(remove, 3400)
+
+        const START = performance.now()
+        const END = 2300
+        const FADE_IN = 420
+        const RING = 620
+        const PRINT_FIRST = 260
+        const PRINT_SPAN = 560
+        const PRINT_STAGGER = 130
+        const PRINT_DOT = 220
+        const SHEEN_AT = 1420
+        const SHEEN_SPAN = 760
+        const FADE_OUT = 1740
+        const FADE_OUT_SPAN = 460
+        const dpr = Math.min(1.5, devicePixelRatio || 1)
+        const width = innerWidth
+        const height = innerHeight
+        canvas.width = Math.round(width * dpr)
+        canvas.height = Math.round(height * dpr)
+
+        const fontSize = Math.max(44, Math.min(width * 0.1, height * 0.17, 138))
+        const lineHeight = fontSize * 1.18
+        const centerY = height / 2
+        const lines = [
+          { text: 'deepseek', color: [238, 240, 244], y: centerY - lineHeight / 2 },
+          { text: 'harness', color: [122, 170, 255], y: centerY + lineHeight / 2 },
+        ]
+
+        const sampleLine = line => {
+          const measure = document.createElement('canvas').getContext('2d')
+          if (measure === null) return []
+          measure.font = '700 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
+          if ('letterSpacing' in measure) measure.letterSpacing = Math.round(fontSize * 0.1) + 'px'
+          const textWidth = Math.ceil(measure.measureText(line.text).width) + 24
+          const probeHeight = Math.ceil(lineHeight * 1.1)
+          const probe = document.createElement('canvas')
+          probe.width = Math.ceil(textWidth * dpr)
+          probe.height = Math.ceil(probeHeight * dpr)
+          const probeContext = probe.getContext('2d')
+          if (probeContext === null) return []
+          probeContext.scale(dpr, dpr)
+          probeContext.fillStyle = '#fff'
+          probeContext.textAlign = 'center'
+          probeContext.textBaseline = 'middle'
+          probeContext.font = '700 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
+          if ('letterSpacing' in probeContext) probeContext.letterSpacing = Math.round(fontSize * 0.1) + 'px'
+          probeContext.fillText(line.text, textWidth / 2, probeHeight / 2)
+          const pixels = probeContext.getImageData(0, 0, probe.width, probe.height).data
+          const pitch = Math.max(5, Math.round(fontSize / 15))
+          const radius = pitch * 0.28
+          const left = width / 2 - textWidth / 2
+          const top = line.y - probeHeight / 2
+          const dots = []
+          for (let y = pitch / 2; y < probeHeight; y += pitch) {
+            for (let x = pitch / 2; x < textWidth; x += pitch) {
+              const index = (Math.floor(y * dpr) * probe.width + Math.floor(x * dpr)) * 4 + 3
+              if (pixels[index] < 120) continue
+              dots.push({ x: left + x, y: top + y, delay: PRINT_FIRST + (x / textWidth) * PRINT_SPAN, radius })
+            }
+          }
+          return dots
+        }
+
+        const fieldDots = []
+        const fieldPitch = 16
+        for (let y = fieldPitch / 2; y < height; y += fieldPitch) {
+          for (let x = fieldPitch / 2; x < width; x += fieldPitch) {
+            fieldDots.push(x, y)
+          }
+        }
+        const fieldPath = new Path2D()
+        for (let index = 0; index < fieldDots.length; index += 2) {
+          fieldPath.moveTo(fieldDots[index] + 0.9, fieldDots[index + 1])
+          fieldPath.arc(fieldDots[index], fieldDots[index + 1], 0.9, 0, Math.PI * 2)
+        }
+
+        const prepared = []
+        for (let index = 0; index < lines.length; index += 1) {
+          const line = lines[index]
+          const dots = sampleLine({ ...line, y: line.y + lineHeight * index * 0 })
+          for (const dot of dots) dot.delay += index * PRINT_STAGGER
+          prepared.push({ color: line.color, dots })
+        }
+
+        const ringRadius = Math.max(width, height) * 0.7
+        let frame = 0
+        let done = false
+        const paint = now => {
+          if (done) return
+          const elapsed = now - START
+          context.setTransform(dpr, 0, 0, dpr, 0, 0)
+          context.clearRect(0, 0, width, height)
+          const fadeOut = elapsed > FADE_OUT
+            ? Math.max(0, 1 - (elapsed - FADE_OUT) / FADE_OUT_SPAN)
+            : 1
+
+          context.globalCompositeOperation = 'lighter'
+          context.globalAlpha = Math.min(1, Math.max(0, elapsed / FADE_IN)) * 0.5 * fadeOut
+          context.fillStyle = 'rgba(190, 198, 214, 0.5)'
+          context.fill(fieldPath)
+
+          const ringProgress = Math.min(1, Math.max(0, elapsed / RING))
+          if (ringProgress > 0 && ringProgress < 1) {
+            const eased = 1 - Math.pow(1 - ringProgress, 3)
+            context.globalAlpha = 0.22 * (1 - eased) * fadeOut
+            context.strokeStyle = 'rgba(190, 205, 230, 0.9)'
+            context.lineWidth = 1
+            context.beginPath()
+            context.arc(width / 2, centerY, ringRadius * eased, 0, Math.PI * 2)
+            context.stroke()
+          }
+
+          const sheen = elapsed > SHEEN_AT
+            ? Math.min(1, (elapsed - SHEEN_AT) / SHEEN_SPAN)
+            : -1
+          const sheenX = sheen < 0 ? -1e4 : width / 2 - width * 0.4 + sheen * width * 0.8
+
+          for (const line of prepared) {
+            const buckets = new Map()
+            for (const dot of line.dots) {
+              const progress = Math.min(1, Math.max(0, (elapsed - dot.delay) / PRINT_DOT))
+              if (progress <= 0) continue
+              let alpha = 0.1 + 0.9 * progress
+              if (sheen >= 0) {
+                const dx = Math.abs(dot.x - sheenX)
+                if (dx < 220) alpha = Math.min(1, alpha + Math.exp(-(dx * dx) / (2 * 70 * 70)) * 0.6)
+              }
+              alpha *= fadeOut
+              const level = Math.max(1, Math.min(10, Math.round(alpha * 10)))
+              const key = level
+              let bucket = buckets.get(key)
+              if (bucket === undefined) {
+                bucket = new Path2D()
+                buckets.set(key, bucket)
+              }
+              const rise = (1 - progress) * 5
+              bucket.moveTo(dot.x + dot.radius, dot.y + rise)
+              bucket.arc(dot.x, dot.y + rise, dot.radius, 0, Math.PI * 2)
+            }
+            const [r, g, b] = line.color
+            for (const [level, path] of buckets) {
+              context.globalAlpha = level / 10
+              context.fillStyle = 'rgb(' + r + ', ' + g + ', ' + b + ')'
+              context.fill(path)
+            }
+          }
+
+          context.globalCompositeOperation = 'source-over'
+          context.globalAlpha = 1
+          if (elapsed < END) {
+            frame = requestAnimationFrame(paint)
+          } else {
+            done = true
+          }
+        }
+        if (frame !== 0) cancelAnimationFrame(frame)
+        frame = requestAnimationFrame(paint)
+        setTimeout(() => {
+          done = true
+          cancelAnimationFrame(frame)
+          if (layer.isConnected) layer.remove()
+        }, END + 120)
       } catch (error) {
         console.warn('[deepclear-ui] splash failed', error)
       }

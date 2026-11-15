@@ -51,6 +51,24 @@ Both states must read at the same size: the same geometry is used in both, the b
 held at 94% and the dim track at 44% so the light-on-dark illusion does not make one look
 fatter.
 
+## The thinking row
+
+The host owns the row and the clock; we never replace the node. Only its **text** is
+hidden (`opacity: 0`, so layout and the elapsed clock stay intact) and redrawn on the
+overlay canvas:
+
+- **Sphere**: 42 Fibonacci points on our own `position: fixed` canvas, 24px box, spinning
+  at `now / 1800`, depth mapped to alpha and dot size, seated where the host icon sits
+  (the icon is hidden while the sphere is on)
+- **Label**: `Deep thinking for {seconds}s. . .` in the host row's own font, with the real
+  elapsed seconds parsed out of the hidden host text, plus a whale-blue highlight band
+  sweeping across every 2.6s
+- **Never paint over the composer**: rows whose bottom edge would cross the composer card
+  are skipped, so the sphere and label cannot bleed onto the input surface
+- **Both switches off** hands the row back untouched: host text, host clock, host icon
+
+## Other rules
+
 ## General rules learned so far
 
 - **Dot lattice is a fixed grid**: dots never move; only their brightness changes. Animation is

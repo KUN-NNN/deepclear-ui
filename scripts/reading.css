@@ -35,8 +35,11 @@ body {
 :root:not(.dc-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
   color: var(--dc-accent);
 }
-:root:not(.dc-off-thinkinglabel) [data-chat-running] {
-  color: var(--dc-accent);
+:root:not(.dc-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
+  opacity: 0;
+}
+:root:not(.dc-off-thinkingsphere) [data-chat-running] [class*="_runningIcon"] {
+  display: none;
 }
 
 /* Compact figures leave submit reachable in a narrow composer. */

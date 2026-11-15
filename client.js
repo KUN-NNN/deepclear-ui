@@ -1256,8 +1256,11 @@ body {
 :root:not(.dc-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
   color: var(--dc-accent);
 }
-:root:not(.dc-off-thinkinglabel) [data-chat-running] {
-  color: var(--dc-accent);
+:root:not(.dc-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
+  opacity: 0;
+}
+:root:not(.dc-off-thinkingsphere) [data-chat-running] [class*="_runningIcon"] {
+  display: none;
 }
 
 /* Compact figures leave submit reachable in a narrow composer. */
@@ -1298,19 +1301,79 @@ body {
 `
 
     /* deepclear indicator:start */
-    /** Quiet, additive dot indicator. Host text and its real clock stay intact. */
+    /**
+     * Dot sphere and English status label.
+     *
+     * The host text keeps the real clock, so we read the elapsed seconds out of it and
+     * redraw both the words and a sweeping highlight on our own overlay canvas. The host
+     * label is hidden by `reading.css` while this is on; turning it off restores the host
+     * row untouched and only parks the sphere to the left of the visible text.
+     */
     function DcOverlay() {
       const canvasRef = React.useRef(null)
       const settings = useDcSettings()
+      const sphereOn = settings.values.thinkingSphere !== false
+      const labelOn = settings.values.thinkingLabel !== false
       React.useEffect(() => {
         const canvas = canvasRef.current
-        if (!canvas || !settings.values.thinkingSphere) return
+        if (!canvas) return
         const context = canvas.getContext('2d')
         if (!context) return
         const motion = matchMedia('(prefers-reduced-motion: reduce)')
+        const seen = new WeakMap()
         let frame = 0
         let stopped = false
         const clear = () => context.clearRect(0, 0, canvas.width, canvas.height)
+
+        const elapsedOf = (row, label, now) => {
+          const found = /\d+/.exec(label.textContent || '')
+          if (found !== null) return Number(found[0])
+          if (!seen.has(row)) seen.set(row, now)
+          return Math.max(0, Math.round((now - seen.get(row)) / 1000))
+        }
+
+        const drawSphere = (cx, cy, spin, ink) => {
+          context.fillStyle = ink
+          for (let index = 0; index < 42; index += 1) {
+            const v = 1 - (2 * (index + 0.5)) / 42
+            const ring = Math.sqrt(1 - v * v)
+            const angle = index * 2.39996323 + spin
+            const depth = Math.sin(angle) * ring
+            context.globalAlpha = 0.25 + (depth + 1) * 0.32
+            const radius = 0.8 + (depth + 1) * 0.35
+            context.beginPath()
+            context.arc(cx + Math.cos(angle) * ring * 8, cy + v * 8, radius, 0, Math.PI * 2)
+            context.fill()
+          }
+          context.globalAlpha = 1
+        }
+
+        const drawLabel = (row, label, x, cy, seconds, now, ink) => {
+          const style = getComputedStyle(label)
+          const font = style.fontWeight + ' ' + style.fontSize + ' ' + style.fontFamily
+          context.font = font
+          context.textBaseline = 'middle'
+          const text = 'Deep thinking for ' + seconds + 's. . .'
+          const width = context.measureText(text).width
+          const accent = (getComputedStyle(row).getPropertyValue('--dc-accent') || '').trim() || '#7aaaff'
+          const band = motion.matches ? -1e4 : ((now % 2600) / 2600) * (width + 140) - 70
+          context.save()
+          context.beginPath()
+          context.rect(x - 2, cy - 20, width + 4, 40)
+          context.clip()
+          context.fillStyle = ink
+          context.globalAlpha = 0.92
+          context.fillText(text, x, cy)
+          context.globalAlpha = 1
+          const gradient = context.createLinearGradient(x + band - 70, 0, x + band + 70, 0)
+          gradient.addColorStop(0, 'rgba(122, 170, 255, 0)')
+          gradient.addColorStop(0.5, accent)
+          gradient.addColorStop(1, 'rgba(122, 170, 255, 0)')
+          context.fillStyle = gradient
+          context.fillText(text, x, cy)
+          context.restore()
+        }
+
         const paint = now => {
           frame = 0
           if (stopped || document.hidden) return
@@ -1323,36 +1386,43 @@ body {
           }
           clear()
           context.setTransform(dpr, 0, 0, dpr, 0, 0)
-          const cards = [...document.querySelectorAll('[data-composer-card]')].map(node => node.getBoundingClientRect())
+          const card = document.querySelector('[data-composer-card]')
+          const cardTop = card === null ? height : card.getBoundingClientRect().top
+          const spin = motion.matches ? 0.35 : now / 1800
           let visible = false
           for (const row of document.querySelectorAll('[data-chat-running]:not([data-holding])')) {
             const bounds = row.getBoundingClientRect()
+            if (bounds.height === 0 || bounds.top < 0 || bounds.bottom > height) continue
+            // The overlay paints above every column: never let the sphere or the label
+            // sit over the composer card.
+            if (bounds.bottom + 2 > cardTop) continue
             const label = row.querySelector('[class*="_runningText"]')
-            if (!label || bounds.height === 0 || bounds.top < 0 || bounds.bottom > height) continue
-            const text = label.getBoundingClientRect()
-            const x = text.right + 17
-            const y = text.top + text.height / 2
-            if (x + 12 > Math.min(width, bounds.right)) continue
-            if (cards.some(box => box.width && x > box.left && x < box.right && y + 12 > box.top && y - 12 < box.bottom)) continue
-            visible = true
-            const ink = getComputedStyle(row).getPropertyValue('--dc-accent').trim()
-              || getComputedStyle(label).color
-            const spin = motion.matches ? 0.35 : now / 1800
-            context.fillStyle = ink
-            for (let i = 0; i < 42; i++) {
-              const v = 1 - 2 * (i + 0.5) / 42
-              const radius = Math.sqrt(1 - v * v)
-              const angle = i * 2.39996323 + spin
-              const z = Math.sin(angle) * radius
-              context.globalAlpha = 0.25 + (z + 1) * 0.32
-              context.beginPath()
-              context.arc(x + Math.cos(angle) * radius * 8, y + v * 8, 0.7, 0, Math.PI * 2)
-              context.fill()
+            if (label === null) continue
+            const labelRect = label.getBoundingClientRect()
+            const ink = getComputedStyle(label).color || 'rgb(200, 205, 215)'
+            const size = 24
+            let cx
+            let cy
+            if (labelOn) {
+              cx = bounds.left + 2 + size / 2
+              cy = bounds.top + Math.min(bounds.height, 30) / 2
+            } else {
+              if (labelRect.width === 0) continue
+              // Keep clear of the host words: park the sphere in the gutter to their left.
+              cx = Math.max(size / 2 + 6, labelRect.left - size / 2 - 8)
+              cy = labelRect.top + labelRect.height / 2
             }
-            context.globalAlpha = 1
+            visible = true
+            if (sphereOn) drawSphere(cx, cy, spin, ink)
+            if (labelOn) {
+              const seconds = elapsedOf(row, label, now)
+              const x = bounds.left + 2 + (sphereOn ? size + 8 : 0)
+              drawLabel(row, label, x, cy, seconds, now, ink)
+            }
           }
           if (visible && !motion.matches) frame = requestAnimationFrame(paint)
         }
+
         const refresh = () => {
           if (frame) cancelAnimationFrame(frame)
           frame = 0
@@ -1360,8 +1430,13 @@ body {
           else frame = requestAnimationFrame(paint)
         }
         const observer = new MutationObserver(refresh)
-        observer.observe(document.body, { childList: true, subtree: true, attributes: true,
-          attributeFilter: ['data-holding', 'data-ds-dark-theme'] })
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+          attributes: true,
+          attributeFilter: ['data-holding', 'data-ds-dark-theme'],
+        })
         window.addEventListener('resize', refresh)
         document.addEventListener('scroll', refresh, true)
         document.addEventListener('visibilitychange', refresh)
@@ -1376,9 +1451,10 @@ body {
           document.removeEventListener('visibilitychange', refresh)
           motion.removeEventListener('change', refresh)
         }
-      }, [settings.values.thinkingSphere])
-      return settings.values.thinkingSphere
-        ? h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' }) : null
+      }, [sphereOn, labelOn])
+      return sphereOn || labelOn
+        ? h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+        : null
     }
 
 /* deepclear indicator:end */
@@ -1613,7 +1689,7 @@ body {
           wave: ['\u5e95\u90e8\u6ce2\u6d6a', '\u9875\u9762\u5e95\u90e8\u7f13\u6162\u6d41\u52a8\u7684\u660e\u6697\u6ce2'],
           ripple: ['\u6307\u9488\u6d9f\u6f2a', '\u9f20\u6807\u5212\u8fc7\u70b9\u9635\u65f6\u8361\u5f00\u7684\u5149\u73af'],
           thinkingSphere: ['\u70b9\u9635\u7403', '\u601d\u8003\u65f6\u65cb\u8f6c\u7684\u5c0f\u7403'],
-          thinkingLabel: ['状态强调', '保留原文与真实耗时'],
+          thinkingLabel: ['英文思考文案', '把状态行换成 “Deep thinking for 12s. . .”'],
           composerField: ['\u8f93\u5165\u6846\u70b9\u9635', '\u4f1a\u8bdd\u9875\u8f93\u5165\u6846\u4e0b\u65b9\u7684\u70b9\u9635\u5e26'],
           glass: ['\u78e8\u7802\u73bb\u7483', '\u4f1a\u8bdd\u9875\u8f93\u5165\u6846\u7684\u534a\u900f\u660e\u6548\u679c'],
           stats: ['\u7528\u91cf\u8bfb\u6570', '\u5728\u53d1\u9001\u6309\u94ae\u6392\u663e\u793a\u4e0a\u4e0b\u6587\u4e0e Token \u7528\u91cf'],
@@ -1635,7 +1711,7 @@ body {
           wave: ['Bottom wave', 'The slow brightness wave along the bottom edge'],
           ripple: ['Pointer ripples', 'Light rings where the pointer crosses the field'],
           thinkingSphere: ['Dot sphere', 'The rotating point-sphere beside the live status'],
-          thinkingLabel: ['Status accent', 'Keep the original status and elapsed time'],
+          thinkingLabel: ['English status label', 'Replace the status row with “Deep thinking for 12s. . .”'],
           composerField: ['Dot floor', 'The dot band under the input on session pages'],
           glass: ['Frosted glass', 'Translucent input card on session pages'],
           stats: ['Usage readout', 'Context and token usage in the button row'],
@@ -1653,13 +1729,13 @@ body {
     Object.assign(DC_COPY.zh.items, {
       reading: ['阅读排版', '舒展段落、标题与引用，保留你的字号'],
       code: ['代码配色', '低饱和语法颜色，保持代码层次'],
-      thinkingLabel: ['状态强调', '轻量强调宿主状态，保留原文与真实耗时'],
+      thinkingLabel: ['英文思考文案', '把状态行换成 “Deep thinking for 12s. . .”'],
       diff: ['差异配色', '新增用蓝色，删除用暖色，保留语法高亮'],
     })
     Object.assign(DC_COPY.en.items, {
       reading: ['Reading layout', 'Clear paragraphs, headings and quotes at your chosen font size'],
       code: ['Code palette', 'Muted, distinct syntax colours'],
-      thinkingLabel: ['Status accent', 'Emphasise the original status and its real elapsed time'],
+      thinkingLabel: ['English status label', 'Replace the status row with “Deep thinking for 12s. . .”'],
       diff: ['Diff palette', 'Blue additions and warm deletions, with syntax highlighting intact'],
     })
 

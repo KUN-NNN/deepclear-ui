@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.3
+
+- Restored the thinking animation: the dot sphere is drawn again in the host icon's seat and
+  an English label (`Deep thinking for 12s. . .`) is redrawn with a sweeping highlight, with
+  the real elapsed seconds parsed out of the hidden host text.
+- The overlay never paints over the composer card; both thinking switches off hands the host
+  row back untouched.
+
 ## 1.8.2
 
 - The composer focus ring is light grey instead of whale blue: a neutral highlight for a text

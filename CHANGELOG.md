@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.1
+
+- The reasoning effort badge is rebuilt in pure CSS: the plugin only stamps
+  `data-dc-effort` / `dc-effort-on` / `dc-effort-max` on the composer card, and two
+  pseudo-elements draw the unfolding dot field (`clip-path` from the middle) and the
+  dot-printed level name (`background-clip: text`). The canvas implementation, its geometry
+  measurement and the debug readout are gone.
+
 ## 1.9.0
 
 - Composer effort band: every reasoning level except OFF plays the dot-field entrance; the

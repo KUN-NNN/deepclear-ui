@@ -933,6 +933,112 @@ body[data-ds-dark-theme] {
   opacity: 0.85;
 }
 
+
+/* ---------------------------------------------- reasoning effort celebration */
+body[data-ds-dark-theme] {
+  --dc-effort-field: rgba(255, 255, 255, 0.8);
+  --dc-effort-ink: rgba(255, 255, 255, 0.95);
+}
+
+body:not([data-ds-dark-theme]) {
+  --dc-effort-field: rgba(58, 62, 72, 0.55);
+  --dc-effort-ink: rgba(22, 24, 28, 0.92);
+}
+
+[data-composer-card] {
+  position: relative;
+}
+
+[data-composer-card] > * {
+  position: relative;
+  z-index: 1;
+}
+
+[data-composer-card].dc-effort-on::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 4px;
+  height: 40px;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 10px;
+  opacity: 0.85;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    var(--dc-effort-field) 0.9px,
+    transparent 1.15px
+  );
+  background-size: 4px 4px;
+  clip-path: inset(0 50% 0 50%);
+  animation: dc-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+[data-composer-card].dc-effort-on::after {
+  content: attr(data-dc-effort);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 40px;
+  z-index: 0;
+  pointer-events: none;
+  text-align: center;
+  font: italic 900 30px / 40px "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    var(--dc-effort-ink) 0.95px,
+    transparent 1.15px
+  );
+  background-size: 3px 3px;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0;
+  animation: dc-effort-word 620ms 740ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+[data-composer-card].dc-effort-max::after {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    var(--dc-accent) 0.95px,
+    transparent 1.15px
+  );
+}
+
+body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
+  animation:
+    dc-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    dc-effort-pulse 1.6s 900ms ease-in-out infinite;
+}
+
+@keyframes dc-effort-open {
+  from { clip-path: inset(0 50% 0 50%); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes dc-effort-word {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dc-effort-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-composer-card].dc-effort-on::before,
+  [data-composer-card].dc-effort-on::after,
+  body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
+    animation: none;
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
 /* ------------------------------------------------------------ settings page */
 .dc-set {
   max-width: 720px;
@@ -1874,348 +1980,43 @@ body {
     }
 
     /**
-     * MAX celebration inside the composer.
+     * Reasoning effort badge, done entirely in CSS.
      *
-     * When the reasoning effort selector reads "Max", a white dot field unfolds from the
-     * middle of the input to both sides, then the middle dots spell MAX in blue. Purely
-     * decorative: it never touches the composer DOM, only our overlay canvas clipped to it.
+     * We only read the effort label and stamp two attributes on the composer card; the
+     * unfolding dot field and the dot-printed level name are pseudo-elements, so there is no
+     * canvas geometry to measure and nothing to drift when the layout changes.
      */
-    function DcMaxField() {
-      const canvasRef = React.useRef(null)
-      React.useEffect(() => {
-        const canvas = canvasRef.current
-        if (canvas === null) return
-        const context = canvas.getContext('2d')
-        if (context === null) return
-        const motion = matchMedia('(prefers-reduced-motion: reduce)')
-        const state = {
-          active: false,
-          word: '',
-          isMax: false,
-          width: 0,
-          eased: 0,
-          thinking: false,
-          pulseStart: 0,
-          started: 0,
-          fade: 0,
-          frame: 0,
-          live: false,
-          lock: '',
-          glyph: null,
-        }
-        let stopped = false
-        let dpr = Math.min(1.5, devicePixelRatio || 1)
+    const DC_EFFORT_OFF = /^(off|none|disabled?|无|关闭)$/i
 
-        const cardOf = () => document.querySelector('[data-composer-card]')
-        const effortLabelOf = card => {
-          if (card === null) return null
-          const node = card.querySelector('[class*="_triggerEffort"]')
-          if (node === null) return null
-          const text = (node.textContent || '').trim()
-          return text === '' ? null : text
-        }
-        const isOffEffort = label => /^(off|none|disabled?|无|关闭)$/i.test(label)
-        const areaOf = card => {
-          if (card === null) return null
-          const editable = card.querySelector('[contenteditable="true"], [role="textbox"], textarea')
-          const node = editable === null ? card : editable
-          const rect = node.getBoundingClientRect()
-          if (rect.width < 40 || rect.height < 24) return null
-          return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
-        }
-        // Stage the band on the send row itself: the tallest button in the card marks it,
-        // so the field never drifts into the card's bottom padding.
-        // The band is derived from the card and its buttons only: the editable shrinks
-        // when attachments appear, and tying the stage to it blanked the whole effect.
-        const glyphAreaOf = card => {
-          if (card === null) return null
-          const cardRect = card.getBoundingClientRect()
-          if (cardRect.width < 80 || cardRect.height < 60) return null
-          let rowRect = null
-          for (const button of card.querySelectorAll('button')) {
-            const rect = button.getBoundingClientRect()
-            if (rect.width < 16 || rect.height < 16) continue
-            if (rowRect === null || rect.height > rowRect.height) rowRect = rect
-          }
-          if (rowRect === null) {
-            const band = Math.max(30, Math.min(46, cardRect.height * 0.34))
-            rowRect = { top: cardRect.bottom - band - 3, height: band }
-          }
-          const top = Math.max(cardRect.top + 4, rowRect.top + 6)
-          const bottom = Math.min(cardRect.bottom - 1, rowRect.top + rowRect.height + 12)
-          const height = bottom - top
-          if (height < 24) return null
-          return { left: cardRect.left, top, width: cardRect.width, height }
-        }
+    function dcEffortLabel() {
+      const card = document.querySelector('[data-composer-card]')
+      if (card === null) return null
+      const node = card.querySelector('[class*="_triggerEffort"]')
+      if (node === null) return null
+      const text = (node.textContent || '').trim()
+      return text === '' ? null : text
+    }
 
-        // Sample MAX into the dot grid once per geometry; the glyph never moves.
-        const glyphOf = area => {
-          const word = state.word === '' ? 'MAX' : state.word
-          const key = word + ':' + Math.round(area.width) + 'x' + Math.round(area.height)
-          if (state.glyph !== null && state.lock === key) return state.glyph
-          const fitted = Math.min(area.height * 0.84, (area.width * 0.86) / Math.max(1, word.length * 0.62), 78)
-          const fontSize = Math.max(16, fitted)
-          const probe = document.createElement('canvas')
-          probe.width = Math.ceil(area.width)
-          probe.height = Math.ceil(area.height)
-          const probeContext = probe.getContext('2d')
-          if (probeContext === null) return null
-          probeContext.clearRect(0, 0, probe.width, probe.height)
-          probeContext.fillStyle = '#fff'
-          probeContext.textAlign = 'center'
-          probeContext.textBaseline = 'middle'
-          probeContext.font = 'italic 900 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
-          if ('letterSpacing' in probeContext) probeContext.letterSpacing = Math.round(fontSize * 0.06) + 'px'
-          // The word sits a touch below the band's midline; the field itself stays put.
-          const drop = Math.round(probe.height * 0.06)
-          probeContext.fillText(word, probe.width / 2, probe.height / 2 + drop)
-          const pixels = probeContext.getImageData(0, 0, probe.width, probe.height).data
-          const dots = []
-          const pitch = 3
-          for (let y = pitch / 2; y < probe.height; y += pitch) {
-            for (let x = pitch / 2; x < probe.width; x += pitch) {
-              const index = (Math.floor(y) * probe.width + Math.floor(x)) * 4 + 3
-              if (pixels[index] > 110) dots.push({ x: x, y: y })
-            }
-          }
-          state.glyph = { dots, width: probe.width, height: probe.height }
-          state.lock = key
-          return state.glyph
-        }
-
-        const paint = () => {
-          state.frame = 0
-          // A frame that is running is not idle: if it throws, `wake` can start it again.
-          state.live = false
-          if (stopped || document.hidden) return
-          const width = innerWidth
-          const height = innerHeight
-          if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
-            canvas.width = Math.round(width * dpr)
-            canvas.height = Math.round(height * dpr)
-          }
-          context.setTransform(dpr, 0, 0, dpr, 0, 0)
-          context.clearRect(0, 0, width, height)
-          const card = cardOf()
-          const area = glyphAreaOf(card)
-          if (area === null) {
-            state.live = false
-            return
-          }
-          const now = performance.now()
-          const target = state.active ? 1 : 0
-          state.fade = motion.matches ? target : state.fade + (target - state.fade) * 0.2
-          if (!state.active && state.fade < 0.02) {
-            state.fade = 0
-            state.live = false
-            return
-          }
-          const style = getComputedStyle(card)
-          const radius = parseFloat(style.borderTopLeftRadius) || 12
-          const accent = (style.getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
-          const elapsed = now - state.started
-          const expand = motion.matches ? 1 : Math.min(1, Math.max(0, elapsed / 780))
-          // Monotonic: the spread only ever grows, so a replayed entrance (a width change,
-          // a re-render) can never shrink the field back to a narrow band.
-          state.eased = Math.max(state.eased, 1 - Math.pow(1 - expand, 3))
-          const reach = state.eased >= 1 ? area.width : (area.width / 2 + 60) * state.eased
-          window.__dcMaxDebug = {
-            active: state.active,
-            thinking: state.thinking,
-            elapsed: Math.round(elapsed),
-            width: Math.round(area.width),
-            reach: Math.round(reach),
-            fade: Math.round(state.fade * 100) / 100,
-            started: Math.round(state.started),
-          }
-          const glyphIn = motion.matches ? 1 : Math.min(1, Math.max(0, (elapsed - 760) / 680))
-          const glyphAlpha = Math.pow(glyphIn, 2) * state.fade
-          const fieldAlpha = 0.44 * state.fade
-
-          context.save()
-          context.beginPath()
-          if (typeof context.roundRect === 'function') {
-            context.roundRect(area.left, area.top, area.width, area.height, radius)
-          } else {
-            context.rect(area.left, area.top, area.width, area.height)
-          }
-          context.clip()
-
-          if (fieldAlpha > 0.01) {
-            const centerX = area.left + area.width / 2
-            const pitch = 4
-            const dark = document.body.hasAttribute('data-ds-dark-theme')
-            // While the model thinks, a highlight sweeps from the middle of the band out
-            // to both edges, so the field reads as a pulse rather than a static texture.
-            const half = area.width / 2 + 60
-            const wave = state.thinking
-              ? (((now - state.pulseStart) % 1500) / 1500) * (area.width / 2 + 80)
-              : -1e4
-            // Dots are collected into alpha buckets and filled once per bucket: thousands
-            // of individual fills is what made the sweep stutter.
-            const buckets = new Map()
-            const startY = Math.floor(area.top / pitch) * pitch + pitch / 2
-            for (let y = startY; y < area.top + area.height; y += pitch) {
-              const startX = Math.floor(area.left / pitch) * pitch + pitch / 2
-              for (let x = startX; x < area.left + area.width; x += pitch) {
-                const spread = Math.abs(x - centerX)
-                if (spread > reach) continue
-                // Flat over most of the width and only softening at the very edges, so the
-                // field visibly fills the whole input instead of fading out by mid-card.
-                const base = fieldAlpha * (0.62 + 0.38 * (1 - spread / half))
-                let highlight = 0
-                if (state.thinking) {
-                  const distance = Math.abs(spread - wave)
-                  if (distance < 66) {
-                    highlight = Math.exp(-(distance * distance) / (2 * 27 * 27)) * 0.7 * state.fade
-                  }
-                }
-                const alpha = base + highlight
-                if (alpha < 0.01) continue
-                const level = Math.min(20, Math.round(alpha * 20))
-                if (level <= 0) continue
-                let bucket = buckets.get(level)
-                if (bucket === undefined) {
-                  bucket = []
-                  buckets.set(level, bucket)
-                }
-                bucket.push(x, y, 0.95 + highlight * 0.5)
-              }
-            }
-            context.fillStyle = dark ? '#ffffff' : '#3f444c'
-            for (const [level, points] of buckets) {
-              context.globalAlpha = Math.min(1, level / 20)
-              context.beginPath()
-              for (let index = 0; index < points.length; index += 3) {
-                context.moveTo(points[index] + points[index + 2], points[index + 1])
-                context.arc(points[index], points[index + 1], points[index + 2], 0, Math.PI * 2)
-              }
-              context.fill()
-            }
-          }
-
-          if (glyphAlpha > 0.01) {
-            const glyph = glyphOf(area)
-            if (glyph !== null) {
-              const dark = document.body.hasAttribute('data-ds-dark-theme')
-              const ink = state.isMax ? accent : (dark ? '#ffffff' : '#171719')
-              // One path per pass; a per-dot shadowBlur is far too expensive here.
-              context.fillStyle = ink
-              context.globalAlpha = Math.min(1, glyphAlpha) * 0.18
-              context.beginPath()
-              for (const dot of glyph.dots) {
-                context.moveTo(area.left + dot.x + 1.6, area.top + dot.y)
-                context.arc(area.left + dot.x, area.top + dot.y, 1.6, 0, Math.PI * 2)
-              }
-              context.fill()
-              context.globalAlpha = Math.min(1, glyphAlpha)
-              context.beginPath()
-              for (const dot of glyph.dots) {
-                context.moveTo(area.left + dot.x + 0.95, area.top + dot.y)
-                context.arc(area.left + dot.x, area.top + dot.y, 0.95, 0, Math.PI * 2)
-              }
-              context.fill()
-            }
-          }
-          context.globalAlpha = 1
-          if (window.__dcDebugPaint !== false) {
-            const info = window.__dcMaxDebug || {}
-            context.strokeStyle = '#ff5d5d'
-            context.lineWidth = 1
-            context.strokeRect(area.left + 0.5, area.top + 0.5, area.width - 1, area.height - 1)
-            context.fillStyle = '#ff5d5d'
-            context.textBaseline = 'top'
-            context.font = 'bold 16px monospace'
-            context.fillText(
-              'B7 stage L' + Math.round(area.left) + ' T' + Math.round(area.top) + ' W' + Math.round(area.width) + ' H' + Math.round(area.height),
-              Math.max(4, area.left + 8), Math.max(4, area.top - 20))
-            context.fillText(
-              'view W' + innerWidth + ' reach ' + Math.round(reach) + ' eased ' + Math.round(state.eased * 100) / 100 + ' fade ' + Math.round(state.fade * 100) / 100,
-              Math.max(4, area.left + 8), Math.max(4, area.top + area.height - 20))
-          }
-          // Keep the loop alive while the effect is on: a stopped loop used to leave a
-          // half-expanded field frozen on screen after a width change.
-          if (state.active || state.fade >= 0.02) {
-            state.frame = requestAnimationFrame(paint)
-            state.live = true
-          } else {
-            state.live = false
-          }
-        }
-
-        const wake = () => {
-          if (stopped || state.live) return
-          state.live = true
-          if (state.frame === 0) state.frame = requestAnimationFrame(paint)
-        }
-
-        const sync = () => {
-          const card = cardOf()
-          const thinking = document.querySelector('[data-chat-running]') !== null
-          if (thinking !== state.thinking) {
-            state.thinking = thinking
-            if (thinking) state.pulseStart = performance.now()
-            wake()
-          }
-          const syncArea = glyphAreaOf(card)
-          const syncWidth = syncArea === null ? 0 : Math.round(syncArea.width)
-          if (syncWidth > 0 && Math.abs(syncWidth - state.width) > 2) {
-            state.width = syncWidth
-            state.glyph = null
-            wake()
-          }
-          const label = effortLabelOf(card)
-          const active = label !== null && !isOffEffort(label)
-          state.active = active
-          if (!active) return
-          const word = label.toUpperCase()
-          if (word !== state.word) {
-            state.word = word
-            state.isMax = word === 'MAX'
-            state.started = performance.now()
-            state.eased = 0
-            state.glyph = null
-            wake()
-          } else if (!state.live) {
-            wake()
-          }
-          // Watchdog: 1.2s after a level change the field must be at full width, even if
-          // some frame starved the entrance.
-          if (state.eased < 1 && performance.now() - state.started > 1200) {
-            state.eased = 1
-            wake()
-          }
-        }
-
-        let syncQueued = false
-        const scheduleSync = () => {
-          if (syncQueued) return
-          syncQueued = true
-          requestAnimationFrame(() => {
-            syncQueued = false
-            sync()
-          })
-        }
-        const observer = new MutationObserver(scheduleSync)
-        observer.observe(document.body, { childList: true, subtree: true, characterData: true })
-        // Measure the composer once a second and adapt: layout changes inside a fixed
-        // window never fire `resize`, so the poll is the reliable trigger.
-        const timer = setInterval(sync, 1000)
-        window.addEventListener('resize', sync)
-        document.addEventListener('scroll', sync, true)
-        sync()
-        return () => {
-          stopped = true
-          observer.disconnect()
-          clearInterval(timer)
-          window.removeEventListener('resize', sync)
-          document.removeEventListener('scroll', sync, true)
-          if (state.frame !== 0) cancelAnimationFrame(state.frame)
-          state.frame = 0
-          state.live = false
-        }
-      }, [])
-      return h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+    function dcPaintEffort(label) {
+      const card = document.querySelector('[data-composer-card]')
+      if (card === null) return
+      if (label === null) {
+        card.removeAttribute('data-dc-effort')
+        card.classList.remove('dc-effort-on', 'dc-effort-max')
+        return
+      }
+      const word = label.toUpperCase()
+      const changed = card.getAttribute('data-dc-effort') !== word
+      card.setAttribute('data-dc-effort', word)
+      card.classList.toggle('dc-effort-max', word === 'MAX')
+      if (changed) {
+        // Toggle the class off and on so the CSS animation replays for the new word.
+        card.classList.remove('dc-effort-on')
+        void card.offsetWidth
+        card.classList.add('dc-effort-on')
+      } else if (!card.classList.contains('dc-effort-on')) {
+        card.classList.add('dc-effort-on')
+      }
     }
 
     /* deepclear runtime:start */
@@ -2866,6 +2667,22 @@ body {
             }
           }, 'deepclear-ui: token layers')
         })
+        ctx.effect(() => {
+          const sync = () => {
+            const label = dcEffortLabel()
+            dcPaintEffort(label !== null && !DC_EFFORT_OFF.test(label) ? label : null)
+          }
+          sync()
+          const timer = setInterval(sync, 500)
+          return () => {
+            clearInterval(timer)
+            const card = document.querySelector('[data-composer-card]')
+            if (card !== null) {
+              card.removeAttribute('data-dc-effort')
+              card.classList.remove('dc-effort-on', 'dc-effort-max')
+            }
+          }
+        }, 'deepclear-ui: effort badge')
         ctx.inject(['configForms'], dcConnectSettings)
         const add = (name, options, Component) => ctx.slots.inject(name,
           () => ctx.slots.register({ name, ...options }, dcSafe(Component)))
@@ -2874,7 +2691,6 @@ body {
         add('shell.overlay', { id: 'dc-ambient', order: 5 }, DcOverlay)
         add('shell.overlay', { id: 'dc-sidebar-dots', order: 6 }, DcSidebarDots)
         add('shell.overlay', { id: 'dc-caret-trail', order: 4 }, DcCaretTrail)
-        add('shell.overlay', { id: 'dc-max-field', order: 3 }, DcMaxField)
         // Package name, distinct from the Host entry id even though both currently match.
         add('plugins.bundle.config', { key: 'deepclear-ui' }, DcSettingsPage)
       },

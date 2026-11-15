@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.0
+
+- Composer effort band: every reasoning level except OFF plays the dot-field entrance; the
+  level name is printed in dots (white, blue for MAX) in the send row, and a highlight sweeps
+  from the middle of the field outward while the model thinks.
+- The usage readout pill and the session dot floor are gone.
+- The band is measured from the card and its buttons once a second, the spread is monotonic
+  and a watchdog forces full width after a level change.
+- Debug: the band paints a small build/metrics line (removed once the layout is settled).
+
 ## 1.8.4
 
 - Fix: the thinking label was stuck at `1s`. The seconds are now counted from the moment the

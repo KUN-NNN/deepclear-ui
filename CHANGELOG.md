@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.8
+
+- The capsule track shrinks to 42x24 (`rx = 12`) while the knob stays an 18px circle.
+
 ## 1.6.7
 
 - The toggle is now drawn as SVG: a 48x28 capsule (`rx = 14`, exact semicircle ends) with a

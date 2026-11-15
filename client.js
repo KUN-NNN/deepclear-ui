@@ -1694,9 +1694,9 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
     function DcSwitchSvg({ value }) {
       const on = value === true
       return h('svg', {
-        width: 48,
-        height: 28,
-        viewBox: '0 0 48 28',
+        width: 42,
+        height: 24,
+        viewBox: '0 0 42 24',
         'aria-hidden': 'true',
         style: { display: 'block', overflow: 'visible' },
       }, [
@@ -1704,10 +1704,10 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           key: 'track',
           x: 0,
           y: 0,
-          width: 48,
-          height: 28,
-          rx: 14,
-          ry: 14,
+          width: 42,
+          height: 24,
+          rx: 12,
+          ry: 12,
           style: {
             fill: on ? 'var(--dsw-alias-label-primary)' : 'color-mix(in srgb, var(--dsw-alias-label-tertiary) 34%, transparent)',
             transition: 'fill 200ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -1716,12 +1716,12 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
         h('g', {
           key: 'knob',
           style: {
-            transform: on ? 'translateX(20px)' : 'translateX(0px)',
+            transform: on ? 'translateX(18px)' : 'translateX(0px)',
             transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
           },
         }, h('circle', {
-          cx: 14,
-          cy: 14,
+          cx: 12,
+          cy: 12,
           r: 9,
           style: {
             fill: on ? 'var(--dsw-alias-bg-base, #17171a)' : 'color-mix(in srgb, var(--dsw-alias-label-primary) 82%, transparent)',

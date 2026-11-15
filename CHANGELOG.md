@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.6
+
+- The toggle knob is thinner: 18px with a 5px margin instead of 22px with 3px.
+
 ## 1.6.5
 
 - The toggle knob is a circle again (22px, 3px margin, radius 50%) — the squircle read as a

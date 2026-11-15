@@ -1635,6 +1635,63 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       dcApplySettings()
     }
 
+    /** Settings copy follows the app language (Chinese unless the UI is English). */
+    const dcUsesChinese = () => {
+      const lang = (document.documentElement.lang || navigator.language || '').toLowerCase()
+      return lang.startsWith('zh')
+    }
+    const DC_COPY = {
+      zh: {
+        lead: '\u8fd9\u91cc\u7684\u5f00\u5173\u7acb\u5373\u751f\u6548\uff0c\u5e76\u6309\u914d\u7f6e\u6587\u4ef6\u8bb0\u4f4f\u3002',
+        groups: {
+          hero: '\u6b22\u8fce\u9875',
+          thinking: '\u601d\u8003\u4e2d',
+          composer: '\u8f93\u5165\u6846',
+          accents: '\u5f3a\u8c03\u8272',
+        },
+        items: {
+          hero: ['\u70b9\u9635\u4eba\u50cf\u4e0e\u5b57\u6807', '\u7a7a\u767d\u6b22\u8fce\u9875\u4e0a\u7684\u7acb\u7ed8\u548c\u5b57\u6807'],
+          field: ['\u80cc\u666f\u70b9\u9635', '\u94fa\u6ee1\u6574\u9875\u7684\u6de1\u70b9\u9635'],
+          wave: ['\u5e95\u90e8\u6ce2\u6d6a', '\u9875\u9762\u5e95\u90e8\u7f13\u6162\u6d41\u52a8\u7684\u660e\u6697\u6ce2'],
+          ripple: ['\u6307\u9488\u6d9f\u6f2a', '\u9f20\u6807\u5212\u8fc7\u70b9\u9635\u65f6\u8361\u5f00\u7684\u5149\u73af'],
+          sphere: ['\u70b9\u9635\u7403', '\u601d\u8003\u65f6\u65cb\u8f6c\u7684\u5c0f\u7403'],
+          label: ['\u82f1\u6587\u601d\u8003\u6587\u6848', '\u628a\u72b6\u6001\u884c\u6362\u6210 \u201cDeep thinking for 12s. . .\u201d'],
+          composerField: ['\u8f93\u5165\u6846\u70b9\u9635', '\u4f1a\u8bdd\u9875\u8f93\u5165\u6846\u4e0b\u65b9\u7684\u70b9\u9635\u5e26'],
+          glass: ['\u78e8\u7802\u73bb\u7483', '\u4f1a\u8bdd\u9875\u8f93\u5165\u6846\u7684\u534a\u900f\u660e\u6548\u679c'],
+          stats: ['\u7528\u91cf\u8bfb\u6570', '\u5728\u53d1\u9001\u6309\u94ae\u6392\u663e\u793a\u4e0a\u4e0b\u6587\u4e0e Token \u7528\u91cf'],
+          bold: ['\u9cb8\u9c7c\u84dd\u52a0\u7c97', '\u804a\u5929\u91cc\u7684\u52a0\u7c97\u6587\u5b57\u53d8\u6210\u9cb8\u9c7c\u84dd'],
+          focusRing: ['\u805a\u7126\u63cf\u8fb9', '\u8f93\u5165\u6846\u805a\u7126\u65f6\u7684\u67d4\u5149\u63cf\u8fb9'],
+          diff: ['diff \u6362\u84dd', '\u65b0\u589e / \u5220\u9664\u884c\u6539\u6210\u84dd\u8272\u65cf'],
+        },
+        reset: '\u6062\u590d\u9ed8\u8ba4',
+        close: '\u5173\u95ed',
+        dialog: 'DeepClear UI \u8bbe\u7f6e',
+        button: 'DeepClear UI \u8bbe\u7f6e',
+      },
+      en: {
+        lead: 'Everything here applies immediately and is remembered per profile.',
+        groups: { hero: 'Welcome page', thinking: 'Thinking', composer: 'Composer', accents: 'Accents' },
+        items: {
+          hero: ['Dot artwork', 'The portrait and the wordmark on the blank home'],
+          field: ['Dot field', 'The faint lattice behind everything'],
+          wave: ['Bottom wave', 'The slow brightness wave along the bottom edge'],
+          ripple: ['Pointer ripples', 'Light rings where the pointer crosses the field'],
+          sphere: ['Dot sphere', 'The rotating point-sphere beside the live status'],
+          label: ['English label', 'Replace the status text with \u201cDeep thinking for 12s. . .\u201d'],
+          composerField: ['Dot floor', 'The dot band under the input on session pages'],
+          glass: ['Frosted glass', 'Translucent input card on session pages'],
+          stats: ['Usage readout', 'Context and token usage in the button row'],
+          bold: ['Whale-blue bold', 'Bold runs in chat prose take the accent colour'],
+          focusRing: ['Focus ring', 'The soft ring while the composer has focus'],
+          diff: ['Re-inked diffs', 'Added and removed lines in the blue family'],
+        },
+        reset: 'Reset to defaults',
+        close: 'Close',
+        dialog: 'DeepClear UI settings',
+        button: 'DeepClear UI settings',
+      },
+    }
+
     /** One settings row: a label on the left and a switch on the right. */
     function DcSwitch({ label, description, value, onChange }) {
       return h('div', { className: 'dc-set-row' }, [
@@ -1657,32 +1714,9 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       ])
     }
 
-    /** Dot-matrix glyph for the settings navigation row. */
-    function DcSettingsIcon({ size = 16, active }) {
-      const unit = size / 16;
-      const dots = [
-        [3, 3], [8, 3], [13, 3],
-        [3, 8], [8, 8], [13, 8],
-        [3, 13], [8, 13], [13, 13],
-      ]
-      const color = active ? '#7aaaff' : 'currentColor'
-      return h('svg', {
-        viewBox: '0 0 16 16',
-        width: size,
-        height: size,
-        'aria-hidden': 'true',
-        style: { display: 'block' },
-      }, dots.map((dot, index) => h('circle', {
-        key: index,
-        cx: dot[0],
-        cy: dot[1],
-        r: 1.35 * unit,
-        fill: color,
-      })))
-    }
-
-    /** The Settings ▸ DeepClear UI page. */
+    /** The switch list shown inside the sidebar sheet. */
     function DcSettingsPage() {
+      const copy = dcUsesChinese() ? DC_COPY.zh : DC_COPY.en
       const [state, setState] = React.useState({ ...dcSettings })
       const update = (key) => (value) => {
         dcSetSetting(key, value)
@@ -1698,36 +1732,36 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
         h('h3', { key: 'title', className: 'dc-set-group-title' }, title),
         ...children,
       ])
+      const item = (key) => {
+        const row = copy.items[key]
+        return h(DcSwitch, {
+          key: key,
+          label: row[0],
+          description: row[1],
+          value: state[key],
+          onChange: update(key),
+        })
+      }
       return h('div', { className: 'dc-set' }, [
-        h('p', { key: 'lead', className: 'dc-set-lead' },
-          'Everything on this page applies immediately and is remembered per profile.'),
-        group('Welcome page', [
-          h(DcSwitch, { key: 'hero', label: 'Dot artwork', description: 'The portrait and the wordmark on the blank home', value: state.hero, onChange: update('hero') }),
-          h(DcSwitch, { key: 'field', label: 'Dot field', description: 'The faint lattice behind everything', value: state.field, onChange: update('field') }),
-          h(DcSwitch, { key: 'wave', label: 'Bottom wave', description: 'The slow brightness wave along the bottom edge', value: state.wave, onChange: update('wave') }),
-          h(DcSwitch, { key: 'ripple', label: 'Pointer ripples', description: 'Light rings where the pointer crosses the field', value: state.ripple, onChange: update('ripple') }),
+        h('p', { key: 'lead', className: 'dc-set-lead' }, copy.lead),
+        group(copy.groups.hero, [
+          item('hero'), item('field'), item('wave'), item('ripple'),
         ]),
-        group('Thinking', [
-          h(DcSwitch, { key: 'sphere', label: 'Dot sphere', description: 'The rotating point-sphere beside the live status', value: state.thinkingSphere, onChange: update('thinkingSphere') }),
-          h(DcSwitch, { key: 'label', label: 'English label', description: 'Replace the status text with “Deep thinking for 12s. . .”', value: state.thinkingLabel, onChange: update('thinkingLabel') }),
+        group(copy.groups.thinking, [
+          item('sphere'), item('label'),
         ]),
-        group('Composer', [
-          h(DcSwitch, { key: 'composer', label: 'Dot floor', description: 'The dot band under the input on session pages', value: state.composerField, onChange: update('composerField') }),
-          h(DcSwitch, { key: 'glass', label: 'Frosted glass', description: 'Translucent input card on session pages', value: state.glass, onChange: update('glass') }),
-          h(DcSwitch, { key: 'stats', label: 'Usage readout', description: 'Context and token usage in the button row', value: state.stats, onChange: update('stats') }),
+        group(copy.groups.composer, [
+          item('composerField'), item('glass'), item('stats'),
         ]),
-        group('Accents', [
-          h(DcSwitch, { key: 'bold', label: 'Whale-blue bold', description: 'Bold runs in chat prose take the accent colour', value: state.bold, onChange: update('bold') }),
-          h(DcSwitch, { key: 'focus', label: 'Focus ring', description: 'The soft ring while the composer has focus', value: state.focusRing, onChange: update('focusRing') }),
-          h(DcSwitch, { key: 'diff', label: 'Re-inked diffs', description: 'Added and removed lines in the blue family', value: state.diff, onChange: update('diff') }),
+        group(copy.groups.accents, [
+          item('bold'), item('focusRing'), item('diff'),
         ]),
         h('div', { key: 'footer', className: 'dc-set-footer' }, [
-          h('button', { key: 'reset', type: 'button', className: 'dc-set-reset', onClick: reset }, 'Reset to defaults'),
-          h('span', { key: 'note', className: 'dc-set-note' }, 'deepclear-ui · npm i deepclear-ui'),
+          h('button', { key: 'reset', type: 'button', className: 'dc-set-reset', onClick: reset }, copy.reset),
+          h('span', { key: 'note', className: 'dc-set-note' }, 'deepclear-ui \u00b7 npm i deepclear-ui'),
         ]),
       ])
     }
-
 
     // ----------------------------------------------------------- sidebar entry
     /** Sheet state shared by the sidebar button and the panel itself. */
@@ -1765,14 +1799,14 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
         return () => { document.removeEventListener('keydown', onKeyDown) }
       }, [open])
       if (!open) return null
-      const panel = h('div', { className: 'dc-sheet-panel', role: 'dialog', 'aria-label': 'DeepClear UI settings' }, [
+      const panel = h('div', { className: 'dc-sheet-panel', role: 'dialog', 'aria-label': dcUsesChinese() ? DC_COPY.zh.dialog : DC_COPY.en.dialog }, [
         h('div', { key: 'head', className: 'dc-sheet-head' }, [
           h('span', { key: 'title', className: 'dc-sheet-title' }, 'DeepClear UI'),
           h('button', {
             key: 'close',
             type: 'button',
             className: 'dc-sheet-close',
-            'aria-label': 'Close',
+            'aria-label': dcUsesChinese() ? DC_COPY.zh.close : DC_COPY.en.close,
             onClick: () => dcSetSheetOpen(false),
           }, '\u00d7'),
         ]),
@@ -1798,7 +1832,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           type: 'button',
           className: 'dc-foot-button',
           title: 'DeepClear UI',
-          'aria-label': 'DeepClear UI settings',
+          'aria-label': dcUsesChinese() ? DC_COPY.zh.button : DC_COPY.en.button,
           onClick: () => dcSetSheetOpen(!dcSheetOpen),
         }, [
           h(DcSettingsIcon, { key: 'icon', size: 16, active: dcSheetOpen }),

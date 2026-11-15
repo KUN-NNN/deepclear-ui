@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1
+
+- Settings sheet copy follows the app language: Chinese when the UI is Chinese, English
+  otherwise. The sheet is titled and announced accordingly.
+
 ## 1.5.0
 
 - The settings page moved out of Settings and into the sidebar foot: a **DeepClear UI** button

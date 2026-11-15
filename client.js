@@ -2898,6 +2898,20 @@ body {
             }
           }
         }, 'deepclear-ui: effort badge')
+        // Fresh conversation on every launch: wait out the splash, then open the blank
+        // session. The workspace id is left to the host so it uses the remembered one.
+        ctx.inject(['uiWorkspace'], scope => {
+          scope.effect(() => {
+            const cancel = scope.timer.timeout(() => {
+              try {
+                scope.uiWorkspace.startSession()
+              } catch (error) {
+                console.warn('[deepclear-ui] could not start a new session', error)
+              }
+            }, 2500)
+            return () => cancel()
+          }, 'deepclear-ui: new session on launch')
+        })
         ctx.inject(['configForms'], dcConnectSettings)
         const add = (name, options, Component) => ctx.slots.inject(name,
           () => ctx.slots.register({ name, ...options }, dcSafe(Component)))

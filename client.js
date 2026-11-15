@@ -1723,6 +1723,55 @@ body {
         let trailCard = null
         let dpr = Math.min(2, devicePixelRatio || 1)
 
+        // A caret (or an IME composition) has no reliable box of its own, so every
+        // measurement falls back to the text or element next to the insertion point.
+        const rectAt = (container, offset) => {
+          if (container === null) return null
+          const range = document.createRange()
+          try {
+            range.setStart(container, offset)
+            range.collapse(true)
+          } catch (error) {
+            return null
+          }
+          const collapsed = range.getBoundingClientRect()
+          if (collapsed.height > 0 && (collapsed.left > 0 || collapsed.top > 0)) {
+            return { left: collapsed.left, top: collapsed.top, height: collapsed.height }
+          }
+          const measure = (node, side) => {
+            if (node === null) return null
+            const inner = document.createRange()
+            inner.selectNodeContents(node)
+            const box = inner.getBoundingClientRect()
+            if (box.height === 0) return null
+            return { left: side === 'end' ? box.right : box.left, top: box.top, height: box.height }
+          }
+          if (container.nodeType === 3) {
+            const text = container.textContent || ''
+            if (offset > 0) {
+              const inner = document.createRange()
+              inner.setStart(container, offset - 1)
+              inner.setEnd(container, offset)
+              const box = inner.getBoundingClientRect()
+              if (box.height > 0) return { left: box.right, top: box.top, height: box.height }
+            }
+            if (text.length > 0) {
+              const inner = document.createRange()
+              inner.setStart(container, 0)
+              inner.setEnd(container, 1)
+              const box = inner.getBoundingClientRect()
+              if (box.height > 0) return { left: box.left, top: box.top, height: box.height }
+            }
+            return null
+          }
+          if (container.nodeType === 1) {
+            const children = container.childNodes
+            return measure(offset > 0 ? children[offset - 1] : null, 'end')
+              || measure(offset < children.length ? children[offset] : null, 'start')
+          }
+          return null
+        }
+
         const caretOf = () => {
           const active = document.activeElement
           if (active === null || typeof active.closest !== 'function') return null
@@ -1733,37 +1782,14 @@ body {
             : active.closest('[contenteditable], [role="textbox"], textarea')
           if (editable === null || !card.contains(editable)) return null
           const selection = window.getSelection()
-          if (selection === null || selection.rangeCount === 0 || !selection.isCollapsed) return null
-          const node = selection.anchorNode
-          if (node === null) return null
-          if (node !== active && !active.contains(node)) return null
-          // A collapsed range has no box in Chromium, so measure the character next to
-          // the caret and take its edge instead.
-          const range = document.createRange()
-          let rect = null
-          try {
-            range.setStart(node, selection.anchorOffset)
-            range.collapse(true)
-            const collapsed = range.getBoundingClientRect()
-            if (collapsed.height > 0 && (collapsed.left > 0 || collapsed.top > 0)) {
-              rect = { left: collapsed.left, top: collapsed.top, height: collapsed.height }
-            } else if (node.nodeType === 3) {
-              const text = node.textContent || ''
-              if (selection.anchorOffset > 0) {
-                range.setStart(node, selection.anchorOffset - 1)
-                range.setEnd(node, selection.anchorOffset)
-                const box = range.getBoundingClientRect()
-                if (box.height > 0) rect = { left: box.right, top: box.top, height: box.height }
-              } else if (text.length > 0) {
-                range.setStart(node, 0)
-                range.setEnd(node, 1)
-                const box = range.getBoundingClientRect()
-                if (box.height > 0) rect = { left: box.left, top: box.top, height: box.height }
-              }
-            }
-          } catch (error) {
-            return null
-          }
+          if (selection === null || selection.rangeCount === 0) return null
+          // While an IME composes, the selection covers the composition text; the caret
+          // sits at its focus end, so measure there instead of bailing out.
+          const container = selection.isCollapsed ? selection.anchorNode : selection.focusNode
+          const offset = selection.isCollapsed ? selection.anchorOffset : selection.focusOffset
+          if (container === null) return null
+          if (container !== active && !active.contains(container)) return null
+          const rect = rectAt(container, offset)
           if (rect === null || rect.height === 0) return null
           return { x: rect.left, y: rect.top, height: rect.height, card }
         }

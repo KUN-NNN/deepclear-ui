@@ -1064,6 +1064,68 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   }
 }
 
+
+/* ------------------------------------------------------------- startup splash */
+.dc-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1em;
+  background: #060608;
+  pointer-events: none;
+  animation: dc-splash-out 420ms 2100ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.dc-splash-line {
+  display: block;
+  font: 800 clamp(36px, 7.4vw, 104px) / 1.12 "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.09em;
+  color: transparent;
+  background-size: 5px 5px;
+  -webkit-background-clip: text;
+  background-clip: text;
+  clip-path: inset(0 100% 0 0);
+  animation:
+    dc-splash-show 120ms linear both,
+    dc-splash-print 720ms steps(38, end) both;
+}
+
+.dc-splash-deepseek {
+  background-image: radial-gradient(circle at 1px 1px, #eef0f4 1.1px, transparent 1.35px);
+}
+
+.dc-splash-harness {
+  background-image: radial-gradient(circle at 1px 1px, #7aaaff 1.1px, transparent 1.35px);
+  animation-delay: 0ms, 240ms;
+}
+
+@keyframes dc-splash-show {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dc-splash-print {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes dc-splash-out {
+  to { opacity: 0; visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-splash,
+  .dc-splash-line {
+    animation: none;
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
 /* ------------------------------------------------------------ settings page */
 .dc-set {
   max-width: 720px;
@@ -2044,6 +2106,39 @@ body {
       }
     }
 
+    /**
+     * Startup splash: the wordmark printed in dots over the boot screen, then it wipes
+     * away. Pure DOM + CSS so it can run the moment the client half applies.
+     */
+    function dcPlaySplash() {
+      if (window.__dcSplashPlayed === true) return
+      window.__dcSplashPlayed = true
+      try {
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+        if (typeof document === 'undefined' || document.body === null) return
+        const layer = document.createElement('div')
+        layer.className = 'dc-splash'
+        layer.setAttribute('aria-hidden', 'true')
+        const deepseek = document.createElement('span')
+        deepseek.className = 'dc-splash-line dc-splash-deepseek'
+        deepseek.textContent = 'deepseek'
+        const harness = document.createElement('span')
+        harness.className = 'dc-splash-line dc-splash-harness'
+        harness.textContent = 'harness'
+        layer.append(deepseek, harness)
+        document.body.appendChild(layer)
+        const remove = () => {
+          if (layer.isConnected) layer.remove()
+        }
+        layer.addEventListener('animationend', event => {
+          if (event.animationName === 'dc-splash-out') remove()
+        })
+        setTimeout(remove, 3400)
+      } catch (error) {
+        console.warn('[deepclear-ui] splash failed', error)
+      }
+    }
+
     /* deepclear runtime:start */
     // Profile settings and token layers; embedded into client.js by build-runtime.mjs.
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
@@ -2669,6 +2764,7 @@ body {
     return {
       inject: ['slots'],
       apply(ctx) {
+        dcPlaySplash()
         ctx.effect(() => {
           dcMounted = true
           dcApplySettings()

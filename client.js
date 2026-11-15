@@ -2004,7 +2004,7 @@ body {
         const glyphOf = area => {
           const key = Math.round(area.width) + 'x' + Math.round(area.height)
           if (state.glyph !== null && state.lock === key) return state.glyph
-          const fontSize = Math.max(18, Math.min(area.height * 0.7, area.width * 0.26, 64))
+          const fontSize = Math.max(18, Math.min(area.height * 0.78, area.width * 0.28, 72))
           const probe = document.createElement('canvas')
           probe.width = Math.ceil(area.width)
           probe.height = Math.ceil(area.height)
@@ -2016,7 +2016,9 @@ body {
           probeContext.textBaseline = 'middle'
           probeContext.font = 'italic 900 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
           if ('letterSpacing' in probeContext) probeContext.letterSpacing = Math.round(fontSize * 0.06) + 'px'
-          probeContext.fillText('MAX', probe.width / 2, probe.height / 2)
+          // The word sits a touch below the band's midline; the field itself stays put.
+          const drop = Math.round(probe.height * 0.16)
+          probeContext.fillText('MAX', probe.width / 2, probe.height / 2 + drop)
           const pixels = probeContext.getImageData(0, 0, probe.width, probe.height).data
           const dots = []
           const pitch = 3

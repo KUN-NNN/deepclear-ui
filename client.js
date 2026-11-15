@@ -1892,6 +1892,7 @@ body {
           active: false,
           word: '',
           isMax: false,
+          width: 0,
           thinking: false,
           pulseStart: 0,
           started: 0,
@@ -1984,6 +1985,8 @@ body {
 
         const paint = () => {
           state.frame = 0
+          // A frame that is running is not idle: if it throws, `wake` can start it again.
+          state.live = false
           if (stopped || document.hidden) return
           const width = innerWidth
           const height = innerHeight
@@ -2129,6 +2132,14 @@ body {
           if (thinking !== state.thinking) {
             state.thinking = thinking
             if (thinking) state.pulseStart = performance.now()
+            wake()
+          }
+          const syncArea = areaOf(card)
+          const syncWidth = syncArea === null ? 0 : Math.round(syncArea.width)
+          if (syncWidth > 0 && Math.abs(syncWidth - state.width) > 16) {
+            state.width = syncWidth
+            state.started = performance.now()
+            state.glyph = null
             wake()
           }
           const label = effortLabelOf(card)

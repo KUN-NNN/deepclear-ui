@@ -51,6 +51,37 @@ Both states must read at the same size: the same geometry is used in both, the b
 held at 94% and the dim track at 44% so the light-on-dark illusion does not make one look
 fatter.
 
+## Hover dot field
+
+Every button in the sidebar carries a dot field that is **completely unlit at rest**. Dots
+only surface inside a soft pool around the pointer, clipped to the hovered control, and fade
+out when the pointer leaves. Dots never move.
+
+Two implementations, one look:
+
+| Where | How | Reach |
+|---|---|---|
+| DeepClear footer button | canvas inside the button (`overflow: hidden`), dots **behind** the icon and label, drawn only on `pointerenter` / `pointermove` | 64px |
+| Every other sidebar control | one fixed overlay canvas (`shell.overlay`, `pointer-events: none`) that tracks the pointer, finds the control under it and prints dots clipped to that control's rounded rect | 74px |
+
+Shared spec:
+
+- Grid: pitch **4px**, dot radius **0.85px**, offsets aligned to the viewport grid (`floor(x / 4) * 4 + 2`)
+- Brightness: `pow(1 - d / reach, 1.35)` — centre full, edge zero, soft tail
+- Overlay alpha cap: **0.72** (the overlay prints over host text, so it stays light); the footer
+  button has no cap because its dots sit behind the text
+- Colour: `--dc-accent`
+- Fade: `alpha += (target - alpha) * 0.22` per frame; the rAF loop stops when the pointer
+  rests, on leave once alpha reaches 0, and collapses to a single frame under
+  `prefers-reduced-motion`
+- Scope: the sidebar is the lowest ancestor of `.dc-foot-button` that contains the hovered
+  row (depth capped at 8), so chat columns and portalled sheets never light up
+- `.dc-foot-button` is excluded from the overlay field (it draws its own)
+
+Never inject nodes into host controls to achieve this.
+
+## Other rules
+
 ## The thinking row
 
 The host owns the row and the clock; we never replace the node. Only its **text** is

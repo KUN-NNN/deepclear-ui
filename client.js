@@ -2074,9 +2074,9 @@ body {
     /**
      * Startup splash: the wordmark assembled out of the dot lattice over the boot screen.
      *
-     * Sequence: a faint field surfaces, a ring travels outward from the centre, the two
-     * lines print dot by dot from left to right (deepseek white, harness whale blue), a
-     * light sheen crosses the wordmark, then everything fades to the app.
+     * Everything expensive is pre-built: the field is one offscreen bitmap, each word is one
+     * Path2D. A frame then only blits the field, strokes one ring, and fills two clipped word
+     * paths, so the animation stays smooth even while the app is still booting.
      */
     function dcPlaySplash() {
       if (window.__dcSplashPlayed === true) return
@@ -2106,12 +2106,11 @@ body {
         const PRINT_FIRST = 260
         const PRINT_SPAN = 560
         const PRINT_STAGGER = 130
-        const PRINT_DOT = 220
         const SHEEN_AT = 1420
         const SHEEN_SPAN = 760
         const FADE_OUT = 1740
         const FADE_OUT_SPAN = 460
-        const dpr = Math.min(1.5, devicePixelRatio || 1)
+        const dpr = Math.min(1.25, devicePixelRatio || 1)
         const width = innerWidth
         const height = innerHeight
         canvas.width = Math.round(width * dpr)
@@ -2121,67 +2120,85 @@ body {
         const lineHeight = fontSize * 1.18
         const centerY = height / 2
         const lines = [
-          { text: 'deepseek', color: [238, 240, 244], y: centerY - lineHeight / 2 },
-          { text: 'harness', color: [122, 170, 255], y: centerY + lineHeight / 2 },
+          { text: 'deepseek', color: 'rgb(238, 240, 244)', y: centerY - lineHeight / 2 },
+          { text: 'harness', color: 'rgb(122, 170, 255)', y: centerY + lineHeight / 2 },
         ]
 
-        const sampleLine = line => {
+        const buildLine = (line, stagger) => {
           const measure = document.createElement('canvas').getContext('2d')
-          if (measure === null) return []
-          measure.font = '700 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
-          if ('letterSpacing' in measure) measure.letterSpacing = Math.round(fontSize * 0.1) + 'px'
-          const textWidth = Math.ceil(measure.measureText(line.text).width) + 24
+          if (measure === null) return null
+          const font = '700 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
+          const spacing = Math.round(fontSize * 0.1) + 'px'
+          measure.font = font
+          if ('letterSpacing' in measure) measure.letterSpacing = spacing
+          const textWidth = Math.ceil(measure.measureText(line.text).width) + 28
           const probeHeight = Math.ceil(lineHeight * 1.1)
           const probe = document.createElement('canvas')
           probe.width = Math.ceil(textWidth * dpr)
           probe.height = Math.ceil(probeHeight * dpr)
           const probeContext = probe.getContext('2d')
-          if (probeContext === null) return []
+          if (probeContext === null) return null
           probeContext.scale(dpr, dpr)
           probeContext.fillStyle = '#fff'
           probeContext.textAlign = 'center'
           probeContext.textBaseline = 'middle'
-          probeContext.font = '700 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
-          if ('letterSpacing' in probeContext) probeContext.letterSpacing = Math.round(fontSize * 0.1) + 'px'
+          probeContext.font = font
+          if ('letterSpacing' in probeContext) probeContext.letterSpacing = spacing
           probeContext.fillText(line.text, textWidth / 2, probeHeight / 2)
           const pixels = probeContext.getImageData(0, 0, probe.width, probe.height).data
           const pitch = Math.max(5, Math.round(fontSize / 15))
-          const radius = pitch * 0.28
+          const radius = pitch * 0.3
           const left = width / 2 - textWidth / 2
           const top = line.y - probeHeight / 2
-          const dots = []
+          const path = new Path2D()
+          let count = 0
           for (let y = pitch / 2; y < probeHeight; y += pitch) {
             for (let x = pitch / 2; x < textWidth; x += pitch) {
               const index = (Math.floor(y * dpr) * probe.width + Math.floor(x * dpr)) * 4 + 3
               if (pixels[index] < 120) continue
-              dots.push({ x: left + x, y: top + y, delay: PRINT_FIRST + (x / textWidth) * PRINT_SPAN, radius })
+              path.moveTo(left + x + radius, top + y)
+              path.arc(left + x, top + y, radius, 0, Math.PI * 2)
+              count += 1
             }
           }
-          return dots
-        }
-
-        const fieldDots = []
-        const fieldPitch = 16
-        for (let y = fieldPitch / 2; y < height; y += fieldPitch) {
-          for (let x = fieldPitch / 2; x < width; x += fieldPitch) {
-            fieldDots.push(x, y)
+          return {
+            path,
+            color: line.color,
+            start: PRINT_FIRST + stagger,
+            left,
+            right: left + textWidth,
+            top,
+            bottom: top + probeHeight,
+            count,
           }
         }
-        const fieldPath = new Path2D()
-        for (let index = 0; index < fieldDots.length; index += 2) {
-          fieldPath.moveTo(fieldDots[index] + 0.9, fieldDots[index + 1])
-          fieldPath.arc(fieldDots[index], fieldDots[index + 1], 0.9, 0, Math.PI * 2)
-        }
 
-        const prepared = []
+        const built = []
         for (let index = 0; index < lines.length; index += 1) {
-          const line = lines[index]
-          const dots = sampleLine({ ...line, y: line.y + lineHeight * index * 0 })
-          for (const dot of dots) dot.delay += index * PRINT_STAGGER
-          prepared.push({ color: line.color, dots })
+          const line = buildLine(lines[index], index * PRINT_STAGGER)
+          if (line !== null) built.push(line)
         }
 
-        const ringRadius = Math.max(width, height) * 0.7
+        // Field: drawn once into an offscreen bitmap, then blitted each frame.
+        const field = document.createElement('canvas')
+        field.width = canvas.width
+        field.height = canvas.height
+        const fieldContext = field.getContext('2d')
+        if (fieldContext !== null) {
+          fieldContext.scale(dpr, dpr)
+          const fieldPath = new Path2D()
+          const pitch = 18
+          for (let y = pitch / 2; y < height; y += pitch) {
+            for (let x = pitch / 2; x < width; x += pitch) {
+              fieldPath.moveTo(x + 0.9, y)
+              fieldPath.arc(x, y, 0.9, 0, Math.PI * 2)
+            }
+          }
+          fieldContext.fillStyle = 'rgba(186, 196, 214, 0.5)'
+          fieldContext.fill(fieldPath)
+        }
+
+        const ringRadius = Math.max(width, height) * 0.72
         let frame = 0
         let done = false
         const paint = now => {
@@ -2189,19 +2206,18 @@ body {
           const elapsed = now - START
           context.setTransform(dpr, 0, 0, dpr, 0, 0)
           context.clearRect(0, 0, width, height)
+          context.globalCompositeOperation = 'source-over'
           const fadeOut = elapsed > FADE_OUT
             ? Math.max(0, 1 - (elapsed - FADE_OUT) / FADE_OUT_SPAN)
             : 1
 
-          context.globalCompositeOperation = 'lighter'
-          context.globalAlpha = Math.min(1, Math.max(0, elapsed / FADE_IN)) * 0.5 * fadeOut
-          context.fillStyle = 'rgba(190, 198, 214, 0.5)'
-          context.fill(fieldPath)
+          context.globalAlpha = Math.min(1, Math.max(0, elapsed / FADE_IN)) * 0.55 * fadeOut
+          context.drawImage(field, 0, 0, width, height)
 
           const ringProgress = Math.min(1, Math.max(0, elapsed / RING))
           if (ringProgress > 0 && ringProgress < 1) {
             const eased = 1 - Math.pow(1 - ringProgress, 3)
-            context.globalAlpha = 0.22 * (1 - eased) * fadeOut
+            context.globalAlpha = 0.2 * (1 - eased) * fadeOut
             context.strokeStyle = 'rgba(190, 205, 230, 0.9)'
             context.lineWidth = 1
             context.beginPath()
@@ -2209,42 +2225,37 @@ body {
             context.stroke()
           }
 
-          const sheen = elapsed > SHEEN_AT
+          const sheenProgress = elapsed > SHEEN_AT
             ? Math.min(1, (elapsed - SHEEN_AT) / SHEEN_SPAN)
             : -1
-          const sheenX = sheen < 0 ? -1e4 : width / 2 - width * 0.4 + sheen * width * 0.8
+          const sheenX = sheenProgress < 0
+            ? -1e4
+            : width / 2 - width * 0.42 + sheenProgress * width * 0.84
 
-          for (const line of prepared) {
-            const buckets = new Map()
-            for (const dot of line.dots) {
-              const progress = Math.min(1, Math.max(0, (elapsed - dot.delay) / PRINT_DOT))
-              if (progress <= 0) continue
-              let alpha = 0.1 + 0.9 * progress
-              if (sheen >= 0) {
-                const dx = Math.abs(dot.x - sheenX)
-                if (dx < 220) alpha = Math.min(1, alpha + Math.exp(-(dx * dx) / (2 * 70 * 70)) * 0.6)
-              }
-              alpha *= fadeOut
-              const level = Math.max(1, Math.min(10, Math.round(alpha * 10)))
-              const key = level
-              let bucket = buckets.get(key)
-              if (bucket === undefined) {
-                bucket = new Path2D()
-                buckets.set(key, bucket)
-              }
-              const rise = (1 - progress) * 5
-              bucket.moveTo(dot.x + dot.radius, dot.y + rise)
-              bucket.arc(dot.x, dot.y + rise, dot.radius, 0, Math.PI * 2)
+          for (const line of built) {
+            const printProgress = Math.min(1, Math.max(0, (elapsed - line.start) / PRINT_SPAN))
+            if (printProgress <= 0) continue
+            const title = elapsed < line.start
+            const frontier = line.left + (line.right - line.left) * (title ? 0 : printProgress)
+            context.save()
+            context.beginPath()
+            context.rect(0, 0, frontier, height)
+            context.clip()
+            context.globalAlpha = fadeOut
+            context.fillStyle = line.color
+            context.fill(line.path)
+            if (sheenProgress >= 0) {
+              const band = context.createLinearGradient(sheenX - 220, 0, sheenX + 220, 0)
+              band.addColorStop(0, 'rgba(255, 255, 255, 0)')
+              band.addColorStop(0.5, 'rgba(255, 255, 255, 0.55)')
+              band.addColorStop(1, 'rgba(255, 255, 255, 0)')
+              context.globalAlpha = fadeOut * 0.5
+              context.fillStyle = band
+              context.fillRect(sheenX - 220, line.top, 440, line.bottom - line.top)
             }
-            const [r, g, b] = line.color
-            for (const [level, path] of buckets) {
-              context.globalAlpha = level / 10
-              context.fillStyle = 'rgb(' + r + ', ' + g + ', ' + b + ')'
-              context.fill(path)
-            }
+            context.restore()
           }
 
-          context.globalCompositeOperation = 'source-over'
           context.globalAlpha = 1
           if (elapsed < END) {
             frame = requestAnimationFrame(paint)
@@ -2252,7 +2263,6 @@ body {
             done = true
           }
         }
-        if (frame !== 0) cancelAnimationFrame(frame)
         frame = requestAnimationFrame(paint)
         setTimeout(() => {
           done = true

@@ -1,1 +1,12 @@
-![The dot-matrix welcome page: a deepseek / harness wordmark on the left and the mascot portrait on the right](preview.svg)
+# DeepClear UI
+
+![点阵欢迎页](preview.png)
+
+点阵保持原来的秩序，让阅读、输入和代码也有一致的细节。
+
+- 保留 dsh 原生界面配色，搭配鲸鱼蓝重点。
+- 舒展阅读排版，低饱和代码配色，清楚区分新增和删除。
+- 原生状态文字与真实耗时，配合轻量点阵球。
+- 14 项独立开关，更改立即生效，保存到 dsh 配置。
+
+本地 1.8.1 构建，兼容基线 dsh 0.2.2-rc.3。尚未发布。

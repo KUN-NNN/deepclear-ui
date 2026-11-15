@@ -230,7 +230,8 @@ window.__ModuleLoader__.load({
       const portraitLight = mascotDots()
       const portraitDark = invertedDots()
       const wordmark = lockupDots()
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+      let reduced = motion.matches
       const started = performance.now()
       // The reveal clock starts on the first paint that actually has a canvas to draw
       // into, otherwise the animation can finish while the element is still sizing.
@@ -304,7 +305,7 @@ window.__ModuleLoader__.load({
       const onPointerLeave = () => { pointerActive = false }
       /** Moving the pointer over the field band leaves a light ripple behind. */
       const spawnRipple = () => {
-        const cfg = window.__dcSettings
+        const cfg = dcSettings
         if (cfg !== undefined && cfg.ripple === false) return
         const nowMs = performance.now()
         if (nowMs - lastRippleAt < 90) return
@@ -356,8 +357,9 @@ window.__ModuleLoader__.load({
         let bgKey = ''
 
         const paint = (now) => {
-        if (disposed) return
-        const cfg = window.__dcSettings
+        frame = 0
+        if (disposed || document.hidden) return
+        const cfg = dcSettings
         if (cfg !== undefined && cfg.hero === false) {
           context.setTransform(dpr, 0, 0, dpr, 0, 0)
           context.clearRect(0, 0, width, height)
@@ -744,11 +746,27 @@ window.__ModuleLoader__.load({
       window.addEventListener('pointermove', onPointerMove, { passive: true })
       window.addEventListener('pointerleave', onPointerLeave, { passive: true })
       window.addEventListener('pointerdown', onPointerDown, { passive: true })
+      const refresh = () => {
+        if (disposed) return
+        cancelAnimationFrame(frame)
+        frame = 0
+        if (!document.hidden) frame = requestAnimationFrame(paint)
+      }
+      const onMotion = () => { reduced = motion.matches; refresh() }
+      const themeObserver = new MutationObserver(refresh)
+      themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
+      const unsubscribeSettings = dcSubscribeSettings(refresh)
+      motion.addEventListener('change', onMotion)
+      document.addEventListener('visibilitychange', refresh)
       measure()
-      frame = requestAnimationFrame(paint)
+      refresh()
 
       return () => {
         disposed = true
+        unsubscribeSettings()
+        themeObserver.disconnect()
+        motion.removeEventListener('change', onMotion)
+        document.removeEventListener('visibilitychange', refresh)
         cancelAnimationFrame(frame)
         observer.disconnect()
         composerObserver.disconnect()
@@ -767,15 +785,17 @@ window.__ModuleLoader__.load({
      * @returns the layout-neutral frame.
      */
     function HeroFrame({ hero, children }) {
+      const { values } = useDcSettings()
+      const show = hero === true && values.hero
       const canvasRef = React.useRef(null)
       React.useEffect(() => {
         const canvas = canvasRef.current
-        if (hero !== true || canvas === null) return undefined
+        if (!show || canvas === null) return undefined
         return attachMascot(canvas)
-      }, [hero])
+      }, [show])
       return h('div', { className: 'dwe-frame' },
-        hero === true ? h('div', { key: 'sign', className: 'dwe-sign' }, 'deepclear-ui') : null,
-        hero === true ? h('canvas', { key: 'mascot', ref: canvasRef, className: 'dwe-whale', 'aria-hidden': 'true' }) : null,
+        show ? h('div', { key: 'sign', className: 'dwe-sign' }, 'deepclear-ui') : null,
+        show ? h('canvas', { key: 'mascot', ref: canvasRef, className: 'dwe-whale', 'aria-hidden': 'true' }) : null,
         children)
     }
 
@@ -802,7 +822,7 @@ const CSS = `
 /* One whale on the blank home: the official pixel whale would otherwise sit
    behind this dot field, so its canvas is hidden. It keeps its slot layer and
    still renders the wrapped content; only its artwork is suppressed. */
-[data-home-whale] {
+:root:has(canvas.dwe-whale) [data-home-whale] {
   display: none !important;
 }
 
@@ -812,8 +832,8 @@ const CSS = `
    the headline ancestor); the mark is the hero's own brand slot, matched by its
    public slot key. If upstream renames either hook the rule simply stops
    applying. */
-[class*="headline"] [class*="titleGroup"],
-[data-slot="conversation.hero.brand.mark"] {
+:root:has(canvas.dwe-whale) [class*="headline"] [class*="titleGroup"],
+:root:has(canvas.dwe-whale) [data-slot="conversation.hero.brand.mark"] {
   display: none !important;
 }
 
@@ -835,10 +855,6 @@ const CSS = `
 
 /* ------------------------------------------------------------------ accents */
 
-:root:not(.dc-off-bold) [data-slot="conversation.chat.flow"] :is(p, li, td, blockquote, h1, h2, h3, h4, h5, h6) :is(strong, b) {
-  color: #7aaaff;
-}
-
 /* Composer focus: the shipped 0.5px hairline turns whale blue and an inset ring
    thickens the edge. The inset shadow follows the card radius and costs no
    layout, and a focused draft editor is the only trigger — toolbar buttons
@@ -851,13 +867,13 @@ const CSS = `
    slightly translucent, so the wave field behind it would show through the card as
    moving light bands. */
 body:has(canvas.dwe-whale) [data-composer-card] {
-  background: var(--dsw-specific-menu);
+  background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1));
 }
 
 :root:not(.dc-off-glass) body:not(:has(canvas.dwe-whale)) [data-composer-card] {
-  background: color-mix(in srgb, var(--dsw-specific-menu) 62%, transparent);
-  -webkit-backdrop-filter: blur(26px) saturate(120%);
-  backdrop-filter: blur(26px) saturate(120%);
+  background: color-mix(in srgb, var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1)) 92%, transparent);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
 }
 
 /* Dot field behind the composer (Session only; the blank home keeps a clean card). */
@@ -908,14 +924,9 @@ body[data-ds-dark-theme] {
 }
 
 :root:not(.dc-off-composerfield) body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::before {
-  opacity: 0.5;
-  animation: dc-composer-breathe 5.2s ease-in-out infinite;
+  opacity: 0.3;
 }
 
-@keyframes dc-composer-breathe {
-  0%, 100% { opacity: 0.38; }
-  50% { opacity: 0.5; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   :root:not(.dc-off-composerfield) body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::before {
@@ -927,117 +938,29 @@ body[data-ds-dark-theme] {
    instead of recolouring it (a rebinding token switches instantly and reads as a
    pop). Both states declare the same shadow layers so the transition interpolates
    every layer, and the easing starts quickly and settles slowly. */
+/* Focus ring in light grey: the composer is a text surface, so the highlight stays
+   neutral and the accent colour is reserved for content. */
+:root {
+  --dc-focus-ink: 124, 128, 136;
+}
+
+body[data-ds-dark-theme] {
+  --dc-focus-ink: 224, 226, 232;
+}
+
 :root:not(.dc-off-focusring) [data-composer-card] {
   box-shadow:
     var(--dsw-elevation-soft),
-    inset 0 0 0 1px rgba(122, 170, 255, 0),
-    0 0 0 0 rgba(122, 170, 255, 0);
+    inset 0 0 0 1px rgba(var(--dc-focus-ink), 0),
+    0 0 0 0 rgba(var(--dc-focus-ink), 0);
   transition: box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 :root:not(.dc-off-focusring) [data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
   box-shadow:
     var(--dsw-elevation-soft),
-    inset 0 0 0 1.2px rgba(122, 170, 255, 0.85),
-    0 0 0 3px rgba(122, 170, 255, 0.09);
-}
-
-/* Diff plates: the shipped red/green line fills become the deep-blue family and
-   whale blue at the same fill strength. These are ui-theme's own file-diff
-   tokens, which the deliverables comparison reads directly — no DOM coupling,
-   so the plate colours also follow light/dark automatically. The html-body
-   prefix outranks the shipped selector regardless of stylesheet order. */
-:root:not(.dc-off-diff) html body {
-  --dsw-alias-file-diff-deleted-bg: rgb(20 40 110 / 16%);
-  --dsw-alias-file-diff-deleted-gutter: rgb(20 40 110 / 8%);
-  --dsw-alias-file-diff-deleted-marker: #142f7e;
-  --dsw-alias-file-diff-added-bg: rgb(122 170 255 / 16%);
-  --dsw-alias-file-diff-added-gutter: rgb(122 170 255 / 8%);
-  --dsw-alias-file-diff-added-marker: #7aaaff;
-  --dsw-alias-code-diff-deleted: rgb(20 40 110 / 14%);
-  --dsw-alias-code-diff-added: rgb(122 170 255 / 14%);
-}
-html body[data-ds-dark-theme] {
-  --dsw-alias-file-diff-deleted-bg: rgb(20 40 110 / 55%);
-  --dsw-alias-file-diff-deleted-gutter: rgb(20 40 110 / 32%);
-  --dsw-alias-file-diff-deleted-marker: #6e8cff;
-  --dsw-alias-file-diff-added-bg: rgb(122 170 255 / 24%);
-  --dsw-alias-file-diff-added-gutter: rgb(122 170 255 / 12%);
-  --dsw-alias-file-diff-added-marker: #a9c2ff;
-  --dsw-alias-code-diff-deleted: rgb(20 40 110 / 55%);
-  --dsw-alias-code-diff-added: rgb(122 170 255 / 22%);
-}
-
-/* Diff line text: the highlighter's syntax palette inside add/del rows collapses
-   to one blue family so plate and ink agree. Setting the colour on the row and
-   forcing nested syntax spans to inherit beats the inline styles the shiki
-   spans carry; line numbers and the +/- signs follow the same ink, while the
-   3px marker bar still comes from the marker tokens above. Unchanged (context)
-   rows keep their normal secondary ink. */
-[data-diff-line="add"],
-[data-diff-line="del"] {
-  color: #142f7e;
-}
-[data-diff-line="add"] *,
-[data-diff-line="del"] * {
-  color: inherit !important;
-}
-body[data-ds-dark-theme] [data-diff-line="add"],
-body[data-ds-dark-theme] [data-diff-line="del"] {
-  color: #a9c2ff;
-}
-
-/* Same plates applied straight on the diff rows. The token block above is the
-   clean route (the component reads --dsw-alias-file-diff-*), but a surface that
-   paints its own row fills would ignore it; these rules make the row itself
-   blue regardless, and re-declare the row-local gutter/marker variables the
-   number cells consume. */
-:root:not(.dc-off-diff) html body [data-diff-line="add"] {
-  --diff-gutter-fill: rgb(122 170 255 / 8%);
-  --diff-marker: #7aaaff;
-  background: #eaf1ff;
-}
-:root:not(.dc-off-diff) html body [data-diff-line="del"] {
-  --diff-gutter-fill: rgb(20 40 110 / 8%);
-  --diff-marker: #142f7e;
-  background: #d9dde8;
-}
-:root:not(.dc-off-diff) html body[data-ds-dark-theme] [data-diff-line="add"] {
-  --diff-gutter-fill: rgb(122 170 255 / 12%);
-  --diff-marker: #a9c2ff;
-  background: #2d394f;
-}
-:root:not(.dc-off-diff) html body[data-ds-dark-theme] [data-diff-line="del"] {
-  --diff-gutter-fill: rgb(20 40 110 / 32%);
-  --diff-marker: #6e8cff;
-  background: #141f47;
-}
-
-/* ---------------------------------------------------------------- thinking */
-/* The running status row is the live turn indicator: a 14px animated whale tail
-   plus a shimmering label. Swap the tail for a dot-matrix wave in whale blue and
-   tint the hairline above it, keeping the shipped layout and the label text. */
-:root:not(.dc-off-thinkingsphere) [data-chat-running] [class*="_runningIcon"] {
-  display: none;
-}
-
-
-/* The label is redrawn on our own canvas so its wording and the sphere share one
-   surface; the host text stays in the DOM for layout and screen readers. */
-:root:not(.dc-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
-  opacity: 0;
-}
-
-
-
-/* -------------------------------------------------- thinking: live indicator */
-/* Our dot-matrix wave replaces the stock whale tail in the running status row. */
-.dc-run-dots {
-  flex: none;
-  align-self: center;
-  display: block;
-  width: 20px;
-  height: 14px;
+    inset 0 0 0 1.2px rgba(var(--dc-focus-ink), 0.9),
+    0 0 0 3px rgba(var(--dc-focus-ink), 0.1);
 }
 
 /* --------------------------------------------------- frame-wide ambient layer */
@@ -1066,11 +989,6 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
 
 .dc-stats-item {
   opacity: 0.85;
-}
-
-/* The shipped stats strip below the card now lives in the button row instead. */
-:root:not(.dc-off-stats) [data-composer-dock] > * {
-  display: none !important;
 }
 
 /* ------------------------------------------------------------ settings page */
@@ -1300,229 +1218,177 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
 @media (prefers-reduced-motion: reduce) {
   .dc-sheet-panel { animation: none; }
 }
+/* deepclear reading:start */
+/* DeepClear reading: semantic hooks only; never animate streamed text. */
+body {
+  --dc-accent: var(--dsw-alias-link);
+  --dc-focus: color-mix(in srgb, var(--dc-accent) 18%, transparent);
+}
+
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"]:not([data-chat-group-part="reasoning"]) :is(p, li) {
+  line-height: 1.85;
+  text-wrap: pretty;
+}
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] :is(h1, h2, h3, h4) {
+  color: var(--dsw-alias-label-primary);
+  letter-spacing: -0.015em;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] :is(h2, h3) {
+  padding-block-start: 0.25em;
+}
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] blockquote {
+  border-inline-start: 2px solid color-mix(in srgb, var(--dc-accent) 38%, transparent);
+  padding-inline-start: 1em;
+  color: var(--dsw-alias-label-secondary);
+}
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] :is(p, li) > code {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+  border-radius: 4px;
+  padding: 0.12em 0.35em;
+}
+:root:not(.dc-off-code) [data-chat-flow-kind="assistant-step"] pre {
+  font-variant-ligatures: none;
+  tab-size: 2;
+}
+:root:not(.dc-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
+  color: var(--dc-accent);
+}
+:root:not(.dc-off-thinkinglabel) [data-chat-running] {
+  color: var(--dc-accent);
+}
+
+/* Compact figures leave submit reachable in a narrow composer. */
+.dc-stats {
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.015em;
+  font-variant-numeric: tabular-nums;
+}
+.dc-stats-label {
+  margin-inline-end: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+.dc-stats-item { color: var(--dsw-alias-label-secondary); }
+@media (max-width: 640px) {
+  .dc-stats-label { display: none; }
+  .dc-stats { gap: 6px; }
+}
+@media (max-width: 420px) {
+  .dc-stats-output { display: none; }
+}
+.dc-switch:disabled { cursor: default; opacity: 0.48; }
+.dc-set-reset:disabled { cursor: default; opacity: 0.48; }
+.dc-settings-status {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+.dc-settings-status[role="alert"] { color: var(--dsw-alias-state-error-primary); }
+@media (prefers-reduced-motion: reduce) {
+  .dc-sheet-panel, .dc-sheet-scrim { animation: none; }
+  [data-composer-card] { transition: none !important; }
+}
+
+/* deepclear reading:end */
 `
 
-    /** Frame-wide ambient layer: sonar dot rings plus edge breathing glow. */
-    function DcOverlay(props) {
-      const busy = props.useSessionStatus((statuses) => {
-        let running = false
-        statuses.forEach((status) => {
-          if (status !== undefined && status.running === true) running = true
-        })
-        return running
-      })
+    /* deepclear indicator:start */
+    /** Quiet, additive dot indicator. Host text and its real clock stay intact. */
+    function DcOverlay() {
       const canvasRef = React.useRef(null)
-      const busyRef = React.useRef(false)
-      const controlRef = React.useRef(null)
-
+      const settings = useDcSettings()
       React.useEffect(() => {
         const canvas = canvasRef.current
-        if (canvas === null) return undefined
+        if (!canvas || !settings.values.thinkingSphere) return
         const context = canvas.getContext('2d')
-        if (context === null) return undefined
-        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        let width = 0
-        let height = 0
-        let dpr = 1
+        if (!context) return
+        const motion = matchMedia('(prefers-reduced-motion: reduce)')
         let frame = 0
-        let intensity = 0
-        let clock = 0
-        const rowCache = { element: null, since: 0, color: '#c8cdd7' }
-
-        const resize = () => {
-          dpr = Math.min(2, window.devicePixelRatio || 1)
-          width = window.innerWidth
-          height = window.innerHeight
-          canvas.width = Math.max(1, Math.round(width * dpr))
-          canvas.height = Math.max(1, Math.round(height * dpr))
-          canvas.style.width = width + 'px'
-          canvas.style.height = height + 'px'
-        }
-
-        const sonar = (time) => {
-          const cx = width / 2
-          const cy = height * 0.62
-          const minSide = Math.min(width, height)
-          const maxRadius = Math.hypot(width, height) * 0.62
-          const rings = 4
-          const period = 1.8
-          for (let ring = 0; ring < rings; ring += 1) {
-            const phase = ((time / period) + ring / rings) % 1
-            const radius = phase * maxRadius
-            const fade = (1 - phase) * intensity
-            if (fade < 0.05 || radius < 8) continue
-            const count = Math.max(10, Math.round((2 * Math.PI * radius) / 13))
-            for (let index = 0; index < count; index += 1) {
-              const angle = (index / count) * Math.PI * 2
-              const x = cx + Math.cos(angle) * radius
-              const y = cy + Math.sin(angle) * radius
-              if (x < -20 || y < -20 || x > width + 20 || y > height + 20) continue
-              const centreDistance = Math.hypot(x - cx, y - cy) / minSide
-              if (centreDistance < 0.34) continue
-              const edgeFade = Math.min(1, (centreDistance - 0.34) / 0.12)
-              const alpha = fade * edgeFade * 0.15
-              if (alpha < 0.004) continue
-              context.fillStyle = 'rgba(122, 170, 255, ' + alpha.toFixed(4) + ')'
+        let stopped = false
+        const clear = () => context.clearRect(0, 0, canvas.width, canvas.height)
+        const paint = now => {
+          frame = 0
+          if (stopped || document.hidden) return
+          const dpr = Math.min(2, devicePixelRatio || 1)
+          const width = innerWidth
+          const height = innerHeight
+          if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+            canvas.width = Math.round(width * dpr)
+            canvas.height = Math.round(height * dpr)
+          }
+          clear()
+          context.setTransform(dpr, 0, 0, dpr, 0, 0)
+          const cards = [...document.querySelectorAll('[data-composer-card]')].map(node => node.getBoundingClientRect())
+          let visible = false
+          for (const row of document.querySelectorAll('[data-chat-running]:not([data-holding])')) {
+            const bounds = row.getBoundingClientRect()
+            const label = row.querySelector('[class*="_runningText"]')
+            if (!label || bounds.height === 0 || bounds.top < 0 || bounds.bottom > height) continue
+            const text = label.getBoundingClientRect()
+            const x = text.right + 17
+            const y = text.top + text.height / 2
+            if (x + 12 > Math.min(width, bounds.right)) continue
+            if (cards.some(box => box.width && x > box.left && x < box.right && y + 12 > box.top && y - 12 < box.bottom)) continue
+            visible = true
+            const ink = getComputedStyle(row).getPropertyValue('--dc-accent').trim()
+              || getComputedStyle(label).color
+            const spin = motion.matches ? 0.35 : now / 1800
+            context.fillStyle = ink
+            for (let i = 0; i < 42; i++) {
+              const v = 1 - 2 * (i + 0.5) / 42
+              const radius = Math.sqrt(1 - v * v)
+              const angle = i * 2.39996323 + spin
+              const z = Math.sin(angle) * radius
+              context.globalAlpha = 0.25 + (z + 1) * 0.32
               context.beginPath()
-              context.arc(x, y, 1.15, 0, Math.PI * 2)
+              context.arc(x + Math.cos(angle) * radius * 8, y + v * 8, 0.7, 0, Math.PI * 2)
               context.fill()
             }
+            context.globalAlpha = 1
           }
+          if (visible && !motion.matches) frame = requestAnimationFrame(paint)
         }
-
-        // A rotating point-sphere drawn at the running status row. The row is only
-        // measured, never modified: the React tree stays untouched.
-        const GLOBE = []
-        for (let index = 0; index < 42; index += 1) {
-          const y = 1 - (index / 41) * 2
-          const ring = Math.sqrt(Math.max(0, 1 - y * y))
-          const theta = index * 2.399963229728653
-          GLOBE.push([Math.cos(theta) * ring, y, Math.sin(theta) * ring])
+        const refresh = () => {
+          if (frame) cancelAnimationFrame(frame)
+          frame = 0
+          if (document.hidden) clear()
+          else frame = requestAnimationFrame(paint)
         }
-
-        const sphere = (time) => {
-          const settings = window.__dcSettings
-          if (settings !== undefined && settings.thinkingSphere === false && settings.thinkingLabel === false) return
-          const row = document.querySelector('[data-chat-running]')
-          if (row === null) {
-            rowCache.element = null
-            return
-          }
-          const bounds = row.getBoundingClientRect()
-          if (bounds.width === 0) return
-          // The overlay paints above every column, so anything the row would draw
-          // while it sits behind the composer card (or off-screen) must be skipped:
-          // otherwise the sphere and its label bleed over the input box.
-          if (bounds.top < 0 || bounds.bottom > height) return
-          const card = document.querySelector('[data-composer-card]')
-          if (card !== null) {
-            const cardTop = card.getBoundingClientRect().top
-            if (bounds.bottom + 2 > cardTop) return
-          }
-          if (rowCache.element !== row) {
-            rowCache.element = row
-            rowCache.since = time
-            const label = row.querySelector('[class*="_runningText"]')
-            rowCache.color = label === null
-              ? 'rgb(200, 205, 215)'
-              : getComputedStyle(label).color
-          }
-          const size = 24
-          // When our English label is on, the host text is invisible and the sphere
-          // owns the row's left edge. When it is off, the host text is visible, so the
-          // sphere anchors to the left of that text instead of overlapping it.
-          const hostLabel = row.querySelector('[class*="_runningText"]')
-          const labelVisible = settings !== undefined && settings.thinkingLabel === false
-          let cx = bounds.left + 1 + size / 2
-          let cy = bounds.top + Math.min(bounds.height, 30) / 2
-          if (labelVisible && hostLabel !== null) {
-            const labelRect = hostLabel.getBoundingClientRect()
-            if (labelRect.width > 0) {
-              cx = Math.max(size / 2 + 6, labelRect.left - size / 2 - 8)
-              cy = labelRect.top + labelRect.height / 2
-            }
-          }
-          const radius = size / 2 - 2
-          const spin = time * 1.5
-          const tilt = 0.42
-          const cosSpin = Math.cos(spin)
-          const sinSpin = Math.sin(spin)
-          const cosTilt = Math.cos(tilt)
-          const sinTilt = Math.sin(tilt)
-          const fade = Math.max(intensity, 0.55)
-          const showSphere = settings === undefined || settings.thinkingSphere !== false
-          for (const point of GLOBE) {
-            if (!showSphere) break
-            const x1 = point[0] * cosSpin + point[2] * sinSpin
-            const z1 = -point[0] * sinSpin + point[2] * cosSpin
-            const y2 = point[1] * cosTilt - z1 * sinTilt
-            const z2 = point[1] * sinTilt + z1 * cosTilt
-            const depth = (z2 + 1) / 2
-            context.beginPath()
-            context.fillStyle = 'rgba(122, 170, 255, ' + ((0.18 + 0.82 * depth) * fade).toFixed(3) + ')'
-            context.arc(cx + x1 * radius, cy + y2 * radius, 0.55 + 0.85 * depth, 0, Math.PI * 2)
-            context.fill()
-          }
-          if (settings !== undefined && settings.thinkingLabel === false) return
-          const seconds = Math.max(0, Math.round(time - rowCache.since))
-          const label = 'Deep thinking for ' + seconds + 's. . .'
-          context.font = '500 12.5px "Microsoft YaHei", "Segoe UI", system-ui, sans-serif'
-          context.textBaseline = 'middle'
-          const labelX = cx + size / 2 + 6
-          const labelWidth = Math.max(1, context.measureText(label).width)
-          // A whale-blue highlight band sweeps along the text, the way the light runs
-          // across the dots of the artwork.
-          const sweep = ((time * 0.5) % 1.8) - 0.35
-          const gradient = context.createLinearGradient(labelX, cy, labelX + labelWidth, cy)
-          const stop = (value) => Math.max(0, Math.min(1, value))
-          gradient.addColorStop(0, rowCache.color)
-          gradient.addColorStop(stop(sweep - 0.3), rowCache.color)
-          gradient.addColorStop(stop(sweep - 0.12), 'rgba(122, 170, 255, 0.75)')
-          gradient.addColorStop(stop(sweep), 'rgba(214, 229, 255, 1)')
-          gradient.addColorStop(stop(sweep + 0.12), 'rgba(122, 170, 255, 0.75)')
-          gradient.addColorStop(stop(sweep + 0.3), rowCache.color)
-          gradient.addColorStop(1, rowCache.color)
-          context.fillStyle = gradient
-          context.fillText(label, labelX, cy + 0.5)
-        }
-
-        const render = (now) => {
-          if (clock === 0) clock = now
-          const time = (now - clock) / 1000
-          const target = busyRef.current ? 1 : 0
-          intensity += (target - intensity) * 0.07
-          if (!busyRef.current && intensity < 0.012) {
-            intensity = 0
-            context.setTransform(dpr, 0, 0, dpr, 0, 0)
-            context.clearRect(0, 0, width, height)
-            frame = 0
-            return
-          }
-          context.setTransform(dpr, 0, 0, dpr, 0, 0)
-          context.clearRect(0, 0, width, height)
-          if (!reduced) sonar(time)
-          sphere(time)
-          frame = requestAnimationFrame(render)
-        }
-
-        const start = () => {
-          if (frame !== 0) return
-          frame = requestAnimationFrame(render)
-        }
-
-        resize()
-        window.addEventListener('resize', resize)
-        controlRef.current = { start: start }
-        if (busyRef.current) start()
+        const observer = new MutationObserver(refresh)
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true,
+          attributeFilter: ['data-holding', 'data-ds-dark-theme'] })
+        window.addEventListener('resize', refresh)
+        document.addEventListener('scroll', refresh, true)
+        document.addEventListener('visibilitychange', refresh)
+        motion.addEventListener('change', refresh)
+        refresh()
         return () => {
-          window.removeEventListener('resize', resize)
-          controlRef.current = null
-          if (frame !== 0) cancelAnimationFrame(frame)
+          stopped = true
+          cancelAnimationFrame(frame)
+          observer.disconnect()
+          window.removeEventListener('resize', refresh)
+          document.removeEventListener('scroll', refresh, true)
+          document.removeEventListener('visibilitychange', refresh)
+          motion.removeEventListener('change', refresh)
         }
-      }, [])
-
-      if (busy === true) busyRef.current = true
-      else busyRef.current = false
-
-      React.useEffect(() => {
-        const control = controlRef.current
-        if (busy === true && control !== null) control.start()
-      }, [busy])
-
-      return h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+      }, [settings.values.thinkingSphere])
+      return settings.values.thinkingSphere
+        ? h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' }) : null
     }
+
+/* deepclear indicator:end */
 
     /** Compact session stats for the composer button row. */
     function DcStats(props) {
-      if (window.__dcSettings !== undefined && window.__dcSettings.stats === false) return null
-      let usage
-      let pressure
-      try {
-        usage = props.useProjection('tokenUsage')
-        pressure = props.useProjection('contextPressure')
-      } catch (error) {
-        return null
-      }
+      const { values } = useDcSettings()
+      const usage = props.useProjection('tokenUsage')
+      const pressure = props.useProjection('contextPressure')
+      if (!values.stats) return null
       const billed = usage === undefined || usage === null
         ? 0
         : (usage.uncachedInputTokens || 0) + (usage.cacheReadTokens || 0)
@@ -1533,7 +1399,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       const windowSize = pressure === undefined || pressure === null ? undefined : pressure.contextWindow
       const percent = used === undefined || windowSize === undefined || windowSize === 0
         ? null
-        : Math.min(100, Math.round((used / windowSize) * 100))
+        : Math.max(0, Math.min(100, Math.round((used / windowSize) * 100)))
       if (billed === 0 && percent === null) return null
       const tokens = billed >= 1e6
         ? (billed / 1e6).toFixed(1) + 'm'
@@ -1543,83 +1409,189 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       return h('span', { className: 'dc-stats' }, [
         percent === null
           ? null
-          : h('span', { key: 'ctx', className: 'dc-stats-item', title: 'Context usage' }, percent + '%'),
+          : h('span', { key: 'ctx', className: 'dc-stats-item', title: dcUsesChinese() ? '上下文占用' : 'Context usage' }, [h('span', { key: 'label', className: 'dc-stats-label' }, 'CTX'), percent + '%']),
         billed === 0
           ? null
-          : h('span', { key: 'tok', className: 'dc-stats-item', title: 'Token usage' }, tokens),
+          : h('span', { key: 'tok', className: 'dc-stats-item dc-stats-output', title: dcUsesChinese() ? '累计 Token 用量' : 'Cumulative token usage' }, [h('span', { key: 'label', className: 'dc-stats-label' }, 'TOK'), tokens]),
       ])
     }
 
-    // ---------------------------------------------------------------- settings
-    /** Persisted preferences for the dot layer. Flags gate CSS and the canvas. */
+    /* deepclear runtime:start */
+    // Profile settings and token layers; embedded into client.js by build-runtime.mjs.
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
-    const DC_DEFAULT_SETTINGS = {
-      hero: true,
-      field: true,
-      wave: true,
-      ripple: true,
-      thinkingSphere: true,
-      thinkingLabel: true,
-      composerField: true,
-      glass: true,
-      bold: true,
-      focusRing: true,
-      diff: true,
-      stats: true,
-    }
-    const DC_OFF_CLASS = {
-      hero: 'dc-off-hero',
-      field: 'dc-off-field',
-      wave: 'dc-off-wave',
-      ripple: 'dc-off-ripple',
-      thinkingSphere: 'dc-off-thinkingsphere',
-      thinkingLabel: 'dc-off-thinkinglabel',
-      composerField: 'dc-off-composerfield',
-      glass: 'dc-off-glass',
-      bold: 'dc-off-bold',
-      focusRing: 'dc-off-focusring',
-      diff: 'dc-off-diff',
-      stats: 'dc-off-stats',
-    }
+    const DC_DEFAULT_SETTINGS = Object.freeze(Object.fromEntries([
+      'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
+      'composerField', 'glass', 'bold', 'focusRing', 'diff', 'stats',
+      'reading', 'code',
+    ].map(key => [key, true])))
+    const DC_OFF_CLASS = Object.freeze(Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)
+      .map(key => [key, 'dc-off-' + key.toLowerCase()])))
+    const dcSettingsListeners = new Set()
+    let dcSettings = DC_DEFAULT_SETTINGS
+    let dcSnapshot = { values: dcSettings, status: 'loading', writable: false, pending: false, error: '' }
+    let dcWrite = null
+    let dcSettingsOwner = null
+    let dcTheme = null
+    let dcThemeLayers = new Map()
+    let dcMounted = false
 
-    let dcSettings = (() => {
-      const merged = { ...DC_DEFAULT_SETTINGS }
+    const dcReadLegacy = () => {
       try {
-        const raw = window.localStorage.getItem(DC_SETTINGS_KEY)
-        if (raw !== null) {
-          const parsed = JSON.parse(raw)
-          for (const key of Object.keys(merged)) {
-            if (typeof parsed[key] === 'boolean') merged[key] = parsed[key]
+        const parsed = JSON.parse(window.localStorage.getItem(DC_SETTINGS_KEY))
+        if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+        const values = Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)
+          .filter(key => typeof parsed[key] === 'boolean').map(key => [key, parsed[key]]))
+        return Object.keys(values).length ? values : null
+      } catch { return null }
+    }
+    const dcLegacy = dcReadLegacy()
+    dcSettings = Object.freeze({ ...DC_DEFAULT_SETTINGS, ...dcLegacy })
+    dcSnapshot = { ...dcSnapshot, values: dcSettings }
+    const dcSubscribeSettings = listener => {
+      dcSettingsListeners.add(listener)
+      return () => dcSettingsListeners.delete(listener)
+    }
+    const dcGetSnapshot = () => dcSnapshot
+    const useDcSettings = () => React.useSyncExternalStore(dcSubscribeSettings, dcGetSnapshot, dcGetSnapshot)
+    const dcModes = (light, dark) => ({ light, dark })
+    const DC_CODE = {
+      '--shiki-token-constant': dcModes('#2562A5', '#92BEF4'),
+      '--shiki-token-string': dcModes('#326B55', '#A5CCB8'),
+      '--shiki-token-comment': dcModes('#657287', '#8E9BAF'),
+      '--shiki-token-keyword': dcModes('#765795', '#C0ACD8'),
+      '--shiki-token-parameter': dcModes('#956032', '#D8B18A'),
+      '--shiki-token-function': dcModes('#406A9D', '#A7C8F2'),
+      '--shiki-token-string-expression': dcModes('#326B55', '#A5CCB8'),
+      '--shiki-token-punctuation': dcModes('#546377', '#A6B2C4'),
+      '--shiki-token-link': dcModes('#3269B7', '#8AB6FA'),
+    }
+    const DC_DIFF = {
+      '--dsw-alias-file-diff-added-bg': dcModes('rgb(58 117 196 / 9%)', 'rgb(122 170 255 / 12%)'),
+      '--dsw-alias-file-diff-added-gutter': dcModes('rgb(58 117 196 / 6%)', 'rgb(122 170 255 / 7%)'),
+      '--dsw-alias-file-diff-added-marker': dcModes('#3269B7', '#8AB6FA'),
+      '--dsw-alias-file-diff-deleted-bg': dcModes('rgb(164 97 83 / 9%)', 'rgb(213 156 139 / 10%)'),
+      '--dsw-alias-file-diff-deleted-gutter': dcModes('rgb(164 97 83 / 6%)', 'rgb(213 156 139 / 6%)'),
+      '--dsw-alias-file-diff-deleted-marker': dcModes('#995C50', '#D4A18F'),
+      '--dsw-alias-code-diff-added': dcModes('rgb(58 117 196 / 10%)', 'rgb(122 170 255 / 13%)'),
+      '--dsw-alias-code-diff-deleted': dcModes('rgb(164 97 83 / 10%)', 'rgb(213 156 139 / 11%)'),
+    }
+    const DC_IDENTITY = {
+      '--dc-accent': dcModes('#3269B7', '#8AB6FA'),
+      '--dc-focus': dcModes('rgb(50 105 183 / 18%)', 'rgb(138 182 250 / 18%)'),
+    }
+    function dcSyncTheme() {
+      if (dcTheme === null) return
+      for (const [name, enabled, tokens] of [
+        ['identity', true, DC_IDENTITY],
+        ['code', dcSettings.code, DC_CODE], ['diff', dcSettings.diff, DC_DIFF],
+      ]) {
+        if (enabled && !dcThemeLayers.has(name)) {
+          dcThemeLayers.set(name, dcTheme.overrideTokens('deepclear-ui:' + name, tokens))
+        } else if (!enabled && dcThemeLayers.has(name)) {
+          dcThemeLayers.get(name)()
+          dcThemeLayers.delete(name)
+        }
+      }
+    }
+    function dcApplySettings() {
+      if (!dcMounted) return
+      for (const [key, className] of Object.entries(DC_OFF_CLASS)) {
+        document.documentElement.classList.toggle(className, dcSettings[key] === false)
+      }
+      dcSyncTheme()
+    }
+    function dcPublish(patch) {
+      dcSnapshot = Object.freeze({ ...dcSnapshot, ...patch })
+      dcSettings = dcSnapshot.values
+      dcApplySettings()
+      dcSettingsListeners.forEach(listener => listener())
+    }
+    function dcConnectSettings(scope) {
+      // This is the Host patch entry id; the bundle-config key below is the package name.
+      const form = scope.configForms.get('deepclear-ui')
+      let active = true
+      let migrating = false
+      let migrationTried = false
+      const adopt = () => {
+        if (!active) return
+        const snapshot = form.getSnapshot()
+        if (snapshot.status !== 'ready' || snapshot.value === undefined) {
+          dcPublish({ status: snapshot.status, writable: false })
+          return
+        }
+        const ownsValues = Object.keys(DC_DEFAULT_SETTINGS).some(key =>
+          snapshot.user !== null && typeof snapshot.user === 'object' && Object.hasOwn(snapshot.user, key))
+        if (!migrationTried && dcLegacy !== null && !ownsValues && !snapshot.value.settingsMigrated && snapshot.writable) {
+          migrationTried = true
+          migrating = true
+          dcPublish({ status: 'ready', writable: true, pending: true, error: '' })
+          const ops = Object.entries(dcLegacy).map(([key, value]) => ({ op: 'set', path: [key], value }))
+          ops.push({ op: 'set', path: ['settingsMigrated'], value: true })
+          // Fence the exact snapshot that established the namespace was empty.
+          const migrate = async () => form.mutate(ops, snapshot.revision)
+          migrate().then(ok => {
+            if (!active) return
+            migrating = false
+            dcPublish({ pending: false, error: ok ? '' : 'conflict' })
+            adopt()
+          }, () => {
+            if (!active) return
+            migrating = false
+            dcPublish({ pending: false, error: 'save' })
+            adopt()
+          })
+          // Keep the legacy key read-only: other profiles may share this origin.
+          return
+        }
+        if (migrating) return
+        const values = Object.freeze(Object.fromEntries(Object.entries(DC_DEFAULT_SETTINGS)
+          .map(([key, fallback]) => [key, typeof snapshot.value[key] === 'boolean' ? snapshot.value[key] : fallback])))
+        dcPublish({ values, status: 'ready', writable: snapshot.writable })
+      }
+      const write = async values => {
+        if (!active || dcSnapshot.pending || dcSnapshot.status !== 'ready' || !dcSnapshot.writable) return
+        dcPublish({ pending: true, error: '' })
+        try {
+          const ops = Object.entries(values).filter(([key, value]) => Object.hasOwn(DC_DEFAULT_SETTINGS, key) && typeof value === 'boolean')
+            .map(([key, value]) => ({ op: 'set', path: [key], value }))
+          ops.push({ op: 'set', path: ['settingsMigrated'], value: true })
+          const ok = await form.mutate(ops, form.getSnapshot().revision)
+          if (active) dcPublish({ error: ok ? '' : 'conflict' })
+        } catch {
+          if (active) dcPublish({ error: 'save' })
+        } finally {
+          if (active) { dcPublish({ pending: false }); adopt() }
+        }
+      }
+      scope.effect(() => {
+        dcWrite = write
+        dcSettingsOwner = write
+        const unsubscribe = form.subscribe(adopt)
+        adopt()
+        return () => {
+          active = false
+          unsubscribe()
+          if (dcWrite === write) dcWrite = null
+          if (dcSettingsOwner === write) {
+            dcSettingsOwner = null
+            dcPublish({ status: 'unavailable', writable: false, pending: false })
           }
         }
-      } catch (error) {
-        console.warn('[deepclear-ui] settings load failed', error)
-      }
-      return merged
-    })()
+      }, 'deepclear-ui: Host preferences')
+    }
+    const dcSetSetting = (key, value) => dcWrite?.({ [key]: value })
 
-    function dcApplySettings() {
-      const root = document.documentElement
-      for (const key of Object.keys(DC_OFF_CLASS)) {
-        root.classList.toggle(DC_OFF_CLASS[key], dcSettings[key] === false)
-      }
-      // The hero canvas and the overlay read this live, without a re-render.
-      window.__dcSettings = dcSettings
+    class DcBoundary extends React.Component {
+      state = { failed: false }
+      static getDerivedStateFromError() { return { failed: true } }
+      componentDidCatch(error) { console.error('[deepclear-ui] enhancement failed', error) }
+      render() { return this.state.failed ? (this.props.fallback ?? null) : this.props.children }
+    }
+    const dcSafe = Component => function DeepClearSafeSlot(props) {
+      return h(DcBoundary, { fallback: props.children }, h(Component, props))
     }
 
-    function dcSaveSettings() {
-      try {
-        window.localStorage.setItem(DC_SETTINGS_KEY, JSON.stringify(dcSettings))
-      } catch (error) {
-        console.warn('[deepclear-ui] settings save failed', error)
-      }
-    }
-
-    function dcSetSetting(key, value) {
-      dcSettings[key] = value
-      dcSaveSettings()
-      dcApplySettings()
-    }
+/* deepclear runtime:end */
 
     /** Settings copy follows the app language (Chinese unless the UI is English). */
     const dcUsesChinese = () => {
@@ -1641,7 +1613,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           wave: ['\u5e95\u90e8\u6ce2\u6d6a', '\u9875\u9762\u5e95\u90e8\u7f13\u6162\u6d41\u52a8\u7684\u660e\u6697\u6ce2'],
           ripple: ['\u6307\u9488\u6d9f\u6f2a', '\u9f20\u6807\u5212\u8fc7\u70b9\u9635\u65f6\u8361\u5f00\u7684\u5149\u73af'],
           thinkingSphere: ['\u70b9\u9635\u7403', '\u601d\u8003\u65f6\u65cb\u8f6c\u7684\u5c0f\u7403'],
-          thinkingLabel: ['\u82f1\u6587\u601d\u8003\u6587\u6848', '\u628a\u72b6\u6001\u884c\u6362\u6210 \u201cDeep thinking for 12s. . .\u201d'],
+          thinkingLabel: ['状态强调', '保留原文与真实耗时'],
           composerField: ['\u8f93\u5165\u6846\u70b9\u9635', '\u4f1a\u8bdd\u9875\u8f93\u5165\u6846\u4e0b\u65b9\u7684\u70b9\u9635\u5e26'],
           glass: ['\u78e8\u7802\u73bb\u7483', '\u4f1a\u8bdd\u9875\u8f93\u5165\u6846\u7684\u534a\u900f\u660e\u6548\u679c'],
           stats: ['\u7528\u91cf\u8bfb\u6570', '\u5728\u53d1\u9001\u6309\u94ae\u6392\u663e\u793a\u4e0a\u4e0b\u6587\u4e0e Token \u7528\u91cf'],
@@ -1663,7 +1635,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           wave: ['Bottom wave', 'The slow brightness wave along the bottom edge'],
           ripple: ['Pointer ripples', 'Light rings where the pointer crosses the field'],
           thinkingSphere: ['Dot sphere', 'The rotating point-sphere beside the live status'],
-          thinkingLabel: ['English label', 'Replace the status text with \u201cDeep thinking for 12s. . .\u201d'],
+          thinkingLabel: ['Status accent', 'Keep the original status and elapsed time'],
           composerField: ['Dot floor', 'The dot band under the input on session pages'],
           glass: ['Frosted glass', 'Translucent input card on session pages'],
           stats: ['Usage readout', 'Context and token usage in the button row'],
@@ -1677,6 +1649,19 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
         button: 'DeepClear UI settings',
       },
     }
+
+    Object.assign(DC_COPY.zh.items, {
+      reading: ['阅读排版', '舒展段落、标题与引用，保留你的字号'],
+      code: ['代码配色', '低饱和语法颜色，保持代码层次'],
+      thinkingLabel: ['状态强调', '轻量强调宿主状态，保留原文与真实耗时'],
+      diff: ['差异配色', '新增用蓝色，删除用暖色，保留语法高亮'],
+    })
+    Object.assign(DC_COPY.en.items, {
+      reading: ['Reading layout', 'Clear paragraphs, headings and quotes at your chosen font size'],
+      code: ['Code palette', 'Muted, distinct syntax colours'],
+      thinkingLabel: ['Status accent', 'Emphasise the original status and its real elapsed time'],
+      diff: ['Diff palette', 'Blue additions and warm deletions, with syntax highlighting intact'],
+    })
 
     /** Switch drawn as SVG so the capsule ends and the knob are exact shapes. */
     function DcSwitchSvg({ value }) {
@@ -1700,8 +1685,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
             fill: on
               ? 'color-mix(in srgb, var(--dsw-alias-label-primary) 94%, transparent)'
               : 'color-mix(in srgb, var(--dsw-alias-label-tertiary) 44%, transparent)',
-            // A stroke in both states keeps the outline explicit, so the bright track
-            // and the dim one read at the same size instead of one looking fatter.
+            // Only the enabled state carries an outline; keep the SVG geometry fixed.
             stroke: on
               ? 'color-mix(in srgb, var(--dsw-alias-label-primary) 94%, transparent)'
               : 'none',
@@ -1728,7 +1712,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
     }
 
     /** One settings row: a label on the left and a switch on the right. */
-    function DcSwitch({ label, description, value, onChange }) {
+    function DcSwitch({ label, description, value, disabled, onChange }) {
       return h('div', { className: 'dc-set-row' }, [
         h('div', { key: 'text', className: 'dc-set-text' }, [
           h('span', { key: 'label', className: 'dc-set-label' }, label),
@@ -1740,6 +1724,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           key: 'switch',
           type: 'button',
           role: 'switch',
+          disabled,
           'aria-checked': value ? 'true' : 'false',
           'aria-label': label,
           className: 'dc-switch',
@@ -1752,17 +1737,11 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
     /** The switch list shown inside the sidebar sheet. */
     function DcSettingsPage() {
       const copy = dcUsesChinese() ? DC_COPY.zh : DC_COPY.en
-      const [state, setState] = React.useState({ ...dcSettings })
-      const update = (key) => (value) => {
-        dcSetSetting(key, value)
-        setState({ ...dcSettings })
-      }
-      const reset = () => {
-        for (const key of Object.keys(DC_DEFAULT_SETTINGS)) dcSettings[key] = DC_DEFAULT_SETTINGS[key]
-        dcSaveSettings()
-        dcApplySettings()
-        setState({ ...dcSettings })
-      }
+      const settings = useDcSettings()
+      const state = settings.values
+      const disabled = settings.status !== 'ready' || !settings.writable || settings.pending
+      const update = key => value => dcSetSetting(key, value)
+      const reset = () => dcWrite?.(DC_DEFAULT_SETTINGS)
       const group = (title, children) => h('section', { key: title, className: 'dc-set-group' }, [
         h('h3', { key: 'title', className: 'dc-set-group-title' }, title),
         ...children,
@@ -1774,10 +1753,21 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           label: row[0],
           description: row[1],
           value: state[key],
+          disabled,
           onChange: update(key),
         })
       }
+      const zh = dcUsesChinese()
+      const status = settings.error
+        ? (zh ? '保存未完成，请重试。配置冲突时已读取最新设置。' : 'Could not save. The latest settings have been reloaded after a conflict.')
+        : settings.status === 'loading' ? (zh ? '正在读取主题设置…' : 'Loading theme preferences…')
+        : settings.status !== 'ready' ? (zh ? '此宿主暂未提供主题设置。' : 'Theme preferences are unavailable on this host.')
+        : !settings.writable ? (zh ? '此配置只读。' : 'These preferences are read-only.')
+        : settings.pending ? (zh ? '正在保存…' : 'Saving…') : ''
       return h('div', { className: 'dc-set' }, [
+        h('p', { key: 'autosave', className: 'dc-settings-status' }, zh ? '更改立即生效并自动保存。' : 'Changes apply immediately and save automatically.'),
+        status ? h('p', { key: 'status', className: 'dc-settings-status', role: settings.error ? 'alert' : 'status' }, status) : null,
+        group(zh ? '界面与阅读' : 'Interface & reading', [item('reading'), item('code')]),
         group(copy.groups.hero, [
           item('hero'), item('field'), item('wave'), item('ripple'),
         ]),
@@ -1791,8 +1781,8 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           item('bold'), item('focusRing'), item('diff'),
         ]),
         h('div', { key: 'footer', className: 'dc-set-footer' }, [
-          h('button', { key: 'reset', type: 'button', className: 'dc-set-reset', onClick: reset }, copy.reset),
-          h('span', { key: 'note', className: 'dc-set-note' }, 'deepclear-ui \u00b7 npm i deepclear-ui'),
+          h('button', { key: 'reset', type: 'button', className: 'dc-set-reset', disabled, onClick: reset }, copy.reset),
+          h('span', { key: 'note', className: 'dc-set-note' }, 'DeepClear UI · 1.8.1'),
         ]),
       ])
     }
@@ -1824,16 +1814,33 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
     /** The floating settings sheet, portalled to the body when react-dom is around. */
     function DcSheet() {
       const open = useDcSheet()
+      const panelRef = React.useRef(null)
       React.useEffect(() => {
         if (!open) return undefined
-        const onKeyDown = (event) => {
-          if (event.key === 'Escape') dcSetSheetOpen(false)
+        const previousFocus = document.activeElement
+        const panel = panelRef.current
+        const focusable = () => panel === null ? [] : [...panel.querySelectorAll('button:not(:disabled), [href], [tabindex="0"]')]
+        ;(focusable()[0] || panel)?.focus()
+        const onKeyDown = event => {
+          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); dcSetSheetOpen(false) }
+          if (event.key !== 'Tab') return
+          const items = focusable()
+          const first = items[0] || panel
+          const last = items[items.length - 1] || panel
+          if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+            event.preventDefault(); last?.focus()
+          } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === panel)) {
+            event.preventDefault(); first?.focus()
+          }
         }
-        document.addEventListener('keydown', onKeyDown)
-        return () => { document.removeEventListener('keydown', onKeyDown) }
+        document.addEventListener('keydown', onKeyDown, true)
+        return () => {
+          document.removeEventListener('keydown', onKeyDown, true)
+          if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus()
+        }
       }, [open])
       if (!open) return null
-      const panel = h('div', { className: 'dc-sheet-panel', role: 'dialog', 'aria-label': dcUsesChinese() ? DC_COPY.zh.dialog : DC_COPY.en.dialog }, [
+      const panel = h('div', { key: 'panel', className: 'dc-sheet-panel', ref: panelRef, role: 'dialog', 'aria-modal': 'true', tabIndex: -1, 'aria-label': dcUsesChinese() ? DC_COPY.zh.dialog : DC_COPY.en.dialog }, [
         h('div', { key: 'head', className: 'dc-sheet-head' }, [
           h('span', { key: 'title', className: 'dc-sheet-title' }, 'DeepClear UI'),
           h('button', {
@@ -1877,12 +1884,13 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
         cx: point[0],
         cy: point[1],
         r: 1.35 * unit,
-        fill: active ? '#7aaaff' : 'currentColor',
+        fill: active ? 'var(--dc-accent)' : 'currentColor',
       })))
     }
 
     /** Sidebar footer button that opens the sheet. */
     function DcSidebarAction({ wide }) {
+      const open = useDcSheet()
       return h('div', { className: 'dc-foot' }, [
         h('button', {
           key: 'button',
@@ -1892,7 +1900,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           'aria-label': dcUsesChinese() ? DC_COPY.zh.button : DC_COPY.en.button,
           onClick: () => dcSetSheetOpen(!dcSheetOpen),
         }, [
-          h(DcSettingsIcon, { key: 'icon', size: 16, active: dcSheetOpen }),
+          h(DcSettingsIcon, { key: 'icon', size: 16, active: open }),
           wide ? h('span', { key: 'label', className: 'dc-foot-label' }, 'DeepClear UI') : null,
         ]),
         h(DcSheet, { key: 'sheet' }),
@@ -1904,64 +1912,45 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       inject: ['slots'],
       apply(ctx) {
         ctx.effect(() => {
+          dcMounted = true
+          dcApplySettings()
+          return () => {
+            dcMounted = false
+            dcWrite = null
+            dcSetSheetOpen(false)
+            for (const className of Object.values(DC_OFF_CLASS)) document.documentElement.classList.remove(className)
+            for (const dispose of dcThemeLayers.values()) dispose()
+            dcThemeLayers.clear()
+            dcTheme = null
+          }
+        }, 'deepclear-ui: lifecycle')
+        ctx.effect(() => {
           const style = document.createElement('style')
           style.dataset.dshPlugin = 'deepclear-ui'
           style.textContent = CSS
           document.head.append(style)
-          return () => { style.remove() }
-        }, 'whale-emphasis: accent styles')
-
-        // The welcome-page layer is the core of this plugin: register it first so a
-        // failure in the experimental chat hooks can never take it down.
-        ctx.slots.inject('conversation.hero.frame', () => ctx.slots.register({
-          name: 'conversation.hero.frame',
-          id: 'dot-whale',
-          order: 20,
-        }, HeroFrame))
-
-        const guarded = (label, run) => {
-          try {
-            run()
-          } catch (error) {
-            window.__dcError = label + ': ' + (error && error.stack ? error.stack : String(error))
-            console.error('[deepclear-ui] ' + label, error)
-          }
-        }
-
-        guarded('settings', () => {
-          dcApplySettings()
-          ctx.effect(() => () => {}, 'deepclear-ui: settings')
-          ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-            name: 'sidebar.footer.action',
-            id: 'deepclear-ui',
-            order: 5,
-            label: () => 'DeepClear UI',
-          }, DcSidebarAction))
-        })
-
-        guarded('composer-stats', () => {
-          ctx.slots.inject('conversation.input.right', () => {
-            try {
-              return ctx.slots.register({
-                name: 'conversation.input.right',
-                id: 'dc-stats',
-                order: 0,
-              }, DcStats)
-            } catch (error) {
-              console.error('[deepclear-ui] composer-stats', error)
-              return () => {}
+          return () => style.remove()
+        }, 'deepclear-ui: styles')
+        ctx.inject(['theme'], scope => {
+          scope.effect(() => {
+            dcTheme = scope.theme
+            dcSyncTheme()
+            return () => {
+              for (const dispose of dcThemeLayers.values()) dispose()
+              dcThemeLayers.clear()
+              dcTheme = null
             }
-          })
+          }, 'deepclear-ui: token layers')
         })
-
-        guarded('overlay', () => {
-          ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-            name: 'shell.overlay',
-            id: 'dc-ambient',
-            order: 5,
-          }, DcOverlay))
-        })
-
+        ctx.inject(['configForms'], dcConnectSettings)
+        const add = (name, options, Component) => ctx.slots.inject(name,
+          () => ctx.slots.register({ name, ...options }, dcSafe(Component)))
+        add('conversation.hero.frame', { id: 'dot-whale', order: 20 }, HeroFrame)
+        add('sidebar.footer.action', { id: 'deepclear-ui', order: 5, label: () => 'DeepClear UI' }, DcSidebarAction)
+        add('conversation.input.right', { id: 'dc-stats', order: 0 }, DcStats)
+        add('shell.overlay', { id: 'dc-ambient', order: 5 }, DcOverlay)
+        // Package name, distinct from the Host entry id even though both currently match.
+        add('plugins.bundle.config', { key: 'deepclear-ui' }, DcSettingsPage)
       },
     }
   },

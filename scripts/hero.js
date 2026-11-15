@@ -206,7 +206,8 @@
       const portraitLight = mascotDots()
       const portraitDark = invertedDots()
       const wordmark = lockupDots()
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+      let reduced = motion.matches
       const started = performance.now()
       // The reveal clock starts on the first paint that actually has a canvas to draw
       // into, otherwise the animation can finish while the element is still sizing.
@@ -280,7 +281,7 @@
       const onPointerLeave = () => { pointerActive = false }
       /** Moving the pointer over the field band leaves a light ripple behind. */
       const spawnRipple = () => {
-        const cfg = window.__dcSettings
+        const cfg = dcSettings
         if (cfg !== undefined && cfg.ripple === false) return
         const nowMs = performance.now()
         if (nowMs - lastRippleAt < 90) return
@@ -332,8 +333,9 @@
         let bgKey = ''
 
         const paint = (now) => {
-        if (disposed) return
-        const cfg = window.__dcSettings
+        frame = 0
+        if (disposed || document.hidden) return
+        const cfg = dcSettings
         if (cfg !== undefined && cfg.hero === false) {
           context.setTransform(dpr, 0, 0, dpr, 0, 0)
           context.clearRect(0, 0, width, height)
@@ -720,11 +722,27 @@
       window.addEventListener('pointermove', onPointerMove, { passive: true })
       window.addEventListener('pointerleave', onPointerLeave, { passive: true })
       window.addEventListener('pointerdown', onPointerDown, { passive: true })
+      const refresh = () => {
+        if (disposed) return
+        cancelAnimationFrame(frame)
+        frame = 0
+        if (!document.hidden) frame = requestAnimationFrame(paint)
+      }
+      const onMotion = () => { reduced = motion.matches; refresh() }
+      const themeObserver = new MutationObserver(refresh)
+      themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
+      const unsubscribeSettings = dcSubscribeSettings(refresh)
+      motion.addEventListener('change', onMotion)
+      document.addEventListener('visibilitychange', refresh)
       measure()
-      frame = requestAnimationFrame(paint)
+      refresh()
 
       return () => {
         disposed = true
+        unsubscribeSettings()
+        themeObserver.disconnect()
+        motion.removeEventListener('change', onMotion)
+        document.removeEventListener('visibilitychange', refresh)
         cancelAnimationFrame(frame)
         observer.disconnect()
         composerObserver.disconnect()
@@ -743,15 +761,17 @@
      * @returns the layout-neutral frame.
      */
     function HeroFrame({ hero, children }) {
+      const { values } = useDcSettings()
+      const show = hero === true && values.hero
       const canvasRef = React.useRef(null)
       React.useEffect(() => {
         const canvas = canvasRef.current
-        if (hero !== true || canvas === null) return undefined
+        if (!show || canvas === null) return undefined
         return attachMascot(canvas)
-      }, [hero])
+      }, [show])
       return h('div', { className: 'dwe-frame' },
-        hero === true ? h('div', { key: 'sign', className: 'dwe-sign' }, 'deepclear-ui') : null,
-        hero === true ? h('canvas', { key: 'mascot', ref: canvasRef, className: 'dwe-whale', 'aria-hidden': 'true' }) : null,
+        show ? h('div', { key: 'sign', className: 'dwe-sign' }, 'deepclear-ui') : null,
+        show ? h('canvas', { key: 'mascot', ref: canvasRef, className: 'dwe-whale', 'aria-hidden': 'true' }) : null,
         children)
     }
 

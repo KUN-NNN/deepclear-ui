@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.8.1
+
+- Remove the instrument interface experiment, its decorations, slots and geometry overrides.
+- Remove the global light/dark palette and its setting; use native dsh surface colours.
+- Keep original dot artwork, reading/code features and profile-owned settings.
+
+## 1.8.0
+
+- Add independently switchable light/dark surface palettes, reading layout and muted syntax colours.
+- Keep syntax highlighting in diffs; distinguish blue additions from warm deletions.
+- Persist preferences through dsh profile settings, with revision-checked legacy migration and visible save failures.
+- Add the official plugin configuration entry; improve keyboard focus and error isolation.
+- Retain host status wording and real elapsed time; make the dot sphere additive and stop animation in hidden tabs or reduced motion.
+- Preserve other plugins and the host composer meter; compact usage figures for narrow windows.
+- Keep the original dot artwork and lattice geometry; restore the host welcome content when disabled.
+- Require dsh >=0.2.2-rc.3; add the Host settings schema dependency.
+
+## 1.7.2
+
+- The composer focus ring is light grey instead of whale blue: a neutral highlight for a text
+  surface, with the accent colour kept for content. Dark theme uses `rgb(224, 226, 232)`,
+  light theme `rgb(124, 128, 136)`.
+
 ## 1.7.1
 
 - Added `docs/DESIGN.md`: the toggle is now specified as a binding rule (SVG geometry, 42x24

@@ -1,9 +1,9 @@
 {
   "name": "deepclear-ui",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "private": false,
   "type": "module",
-  "description": "DeepClear UI — dot-matrix welcome page and whale-blue accents for the dsh web UI.",
+  "description": "DeepClear UI — a quiet dot-matrix theme for reading, coding and working in dsh.",
   "license": "MIT",
   "exports": {
     ".": "./index.js",
@@ -34,7 +34,7 @@
   },
   "author": "kunnnn",
   "engines": {
-    "dsh": ">=0.2.1-rc.5 <0.3.0"
+    "dsh": ">=0.2.2-rc.3 <0.3.0"
   },
   "keywords": [
     "deepseek-harness",
@@ -54,5 +54,19 @@
   "homepage": "https://github.com/KUN-NNN/deepclear-ui#readme",
   "bugs": {
     "url": "https://github.com/KUN-NNN/deepclear-ui/issues"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.19.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check client.js && node --check index.js",
+    "build:hero": "node scripts/splice.mjs && node scripts/build.mjs",
+    "build": "node scripts/splice.mjs && node scripts/build.mjs && node scripts/build-runtime.mjs"
   }
 }

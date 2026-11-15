@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>DeepClear UI · 开发预览</title>
+<script src="/node_modules/react/umd/react.development.js"></script>
+<script src="/node_modules/react-dom/umd/react-dom.development.js"></script>
+<style id="host-theme"></style>
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family);font-size:14px}button{font:inherit;color:inherit;cursor:pointer}button:disabled{cursor:default}a{color:var(--dsw-alias-link)}.app{display:grid;grid-template-columns:230px minmax(400px,1fr) 310px;min-height:100vh}.sidebar{background:var(--dsw-specific-sidebar-fill);padding:28px 20px;display:flex;flex-direction:column;gap:8px}.brand{display:flex;gap:10px;align-items:center;font-size:15px;font-weight:600;margin-bottom:30px}.brand span{color:var(--dc-accent)}.nav{padding:10px 12px;border-radius:9px;color:var(--dsw-alias-label-secondary)}.nav.active{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.caption{font-size:10px;letter-spacing:.12em;color:var(--dsw-alias-label-tertiary);margin:30px 12px 9px}.sidebar .bottom{margin-top:auto}.center{position:relative;isolation:isolate;padding-bottom:200px}.topbar{height:70px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;border-bottom:1px solid var(--dsw-alias-border-l1);font-size:12px;color:var(--dsw-alias-label-secondary)}.topbar span:last-child{font-family:Consolas;font-size:10px;letter-spacing:.08em}.chat{max-width:700px;margin:45px auto;padding:0 30px}h2{font-size:23px;margin:0 0 22px}h3{font-size:16px;margin:25px 0 14px}p{margin:14px 0}blockquote{margin:20px 0}.user{background:var(--dsw-alias-bg-layer-2);padding:13px 18px;border-radius:16px;max-width:80%;margin:0 0 35px auto;line-height:1.7}.kicker{font-family:Consolas;font-size:10px;letter-spacing:.12em;color:var(--dsw-alias-label-tertiary)}.code{background:var(--dsw-alias-markdown-code-block);border-radius:12px;overflow:hidden;margin:23px 0}.codehead{height:36px;display:flex;justify-content:space-between;align-items:center;padding:0 16px;border-bottom:1px solid var(--dsw-alias-border-l1);font:10px Consolas;color:var(--dsw-alias-label-tertiary)}pre{padding:14px 18px;margin:0;font-family:var(--ds-font-family-code);font-size:12px;line-height:1.85;overflow:auto}.kw{color:var(--shiki-token-keyword)}.fn{color:var(--shiki-token-function)}.st{color:var(--shiki-token-string)}.co{color:var(--shiki-token-comment)}.diff{font:12px/2 Consolas;background:var(--dsw-alias-markdown-code-block);border-radius:10px;overflow:hidden;margin-top:16px}.diff>div{padding:0 14px;border-left:2px solid}.diff [data-diff-line=add]{background:var(--dsw-alias-file-diff-added-bg);border-color:var(--dsw-alias-file-diff-added-marker)}.diff [data-diff-line=del]{background:var(--dsw-alias-file-diff-deleted-bg);border-color:var(--dsw-alias-file-diff-deleted-marker)}[data-chat-running]{display:flex;align-items:center;gap:8px;margin-top:24px;height:30px;color:var(--dsw-alias-label-tertiary)}._runningText_fixture{display:inline-block;font-size:12px}.composer-wrap{position:absolute;bottom:40px;left:35px;right:35px;z-index:1;max-width:740px;margin:auto}[data-composer-card]{position:relative;border-radius:18px;background:var(--dsw-specific-input-major);box-shadow:var(--dsw-elevation-soft);padding:18px;min-height:110px}[contenteditable]{outline:0;min-height:38px;color:var(--dsw-alias-label-secondary);line-height:1.7}.toolbar{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:11px}.submitrow{display:flex;align-items:center;gap:10px}.send{width:30px;height:30px;border:0;border-radius:50%;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}.workbench{background:var(--dsw-alias-bg-layer-1);padding:0 22px;border-left:1px solid var(--dsw-alias-border-l1)}.tabs{height:70px;display:flex;align-items:center;gap:20px;border-bottom:1px solid var(--dsw-alias-border-l1);font-size:11px}.tabs .selected{color:var(--dc-accent)}.file{font:11px/2.7 Consolas;color:var(--dsw-alias-label-secondary)}.file.on{color:var(--dc-accent)}.term{margin-top:42px;padding:15px 12px;background:var(--dsw-alias-bg-base);border-radius:10px;font:11px/2 Consolas;color:var(--dsw-alias-label-secondary)}.term b{color:var(--dc-accent);font-weight:400}.preview-note{font-size:10px;color:var(--dsw-alias-label-tertiary);margin-top:28px;line-height:1.8}#settings{display:none;max-width:720px;padding:30px;margin:auto}body.settings #settings{display:block}body.settings .chat{display:none}.home{position:static;height:calc(100vh - 270px);z-index:0}body.home-mode .center{height:100vh;min-height:0;overflow:hidden}.headline{position:absolute;top:28%;left:0;right:0;text-align:center}.titleGroup{font-size:30px}.home [data-home-whale]{font-size:50px}.settings .center{padding-bottom:0}@media(max-width:1000px){.app{grid-template-columns:180px minmax(300px,1fr)}.workbench{display:none}.sidebar{padding:24px 12px}.topbar{padding:0 24px}}@media(max-width:640px){.app{grid-template-columns:1fr}.sidebar{display:none}.chat{padding:0 22px;margin-top:28px}.topbar{padding:0 22px}.composer-wrap{left:18px;right:18px;bottom:24px}}
+</style>
+<div id="root"></div>
+<script>
+const h=React.createElement;
+const defaults=Object.fromEntries(['hero','field','wave','ripple','thinkingSphere','thinkingLabel','composerField','glass','bold','focusRing','diff','stats','reading','code'].map(k=>[k,true]));
+window.fixtureErrors=[];
+const originalError=console.error;
+console.error=(...args)=>{fixtureErrors.push(args.map(String).join(' '));originalError(...args)};
+const registrations=new Map(),effects=[],themeLayers=new Map(),formListeners=new Set();
+let formSnapshot={status:'ready',value:{...defaults,settingsMigrated:true},user:{settingsMigrated:true},revision:1,writable:true};
+window.fixtureReject=null;
+window.fixtureMutations=[];
+const form={getSnapshot:()=>formSnapshot,subscribe:fn=>{formListeners.add(fn);return()=>formListeners.delete(fn)},async mutate(ops,revision){
+  fixtureMutations.push({ops,revision});
+  await new Promise(r=>setTimeout(r,15));
+  if(fixtureReject==='throw')throw Error('offline');
+  if(fixtureReject==='refuse'||revision!==formSnapshot.revision)return false;
+  const patch=Object.fromEntries(ops.map(o=>[o.path[0],o.value]));
+  formSnapshot={...formSnapshot,value:{...formSnapshot.value,...patch},user:{...formSnapshot.user,...patch},revision:formSnapshot.revision+1};
+  formListeners.forEach(fn=>fn());return true;
+}};
+window.fixtureUpdate=patch=>{formSnapshot={...formSnapshot,...patch};formListeners.forEach(fn=>fn())};
+function presentTheme(){
+ const names=new Set([...themeLayers.values()].flatMap(v=>Object.keys(v)));
+ for(const name of window.fixtureTokenNames||[])document.body.style.removeProperty(name);
+ window.fixtureTokenNames=[...names];
+ for(const values of themeLayers.values())for(const [name,modes]of Object.entries(values))document.body.style.setProperty(name,modes[document.body.hasAttribute('data-ds-dark-theme')?'dark':'light']);
+}
+window.fixtureScheme=dark=>{document.body.toggleAttribute('data-ds-dark-theme',dark);presentTheme()};
+function effect(fn){const dispose=fn();effects.push(dispose);return dispose}
+const scope={effect,configForms:{get:()=>form},theme:{overrideTokens(name,values){themeLayers.set(name,values);presentTheme();return()=>{if(themeLayers.get(name)===values){themeLayers.delete(name);presentTheme()}}}}};
+window.fixtureContext={...scope,inject(deps,fn){fn(scope)},slots:{inject(name,fn){return fn()},register(options,Component){registrations.set(options.name,{options,Component});const dispose=()=>registrations.delete(options.name);effects.push(dispose);return dispose}}};
+window.__ModuleLoader__={load(entry){window.fixturePlugin=entry.factory(name=>name==='react'?React:name==='react-dom'?ReactDOM:undefined)}};
+const useProjection=key=>{React.useState(0);return key==='tokenUsage'?{uncachedInputTokens:1200,cacheReadTokens:21600,outputTokens:3200}:{projectedTokens:42000,contextWindow:200000}};
+function Slot({name,...props}){const record=registrations.get(name);return record?h(record.Component,{useProjection,...props}):null}
+let home=false;
+function Fixture(){return h('div',{className:'app'},[
+ h('aside',{key:'side',className:'sidebar'},[h('div',{key:'brand',className:'brand'},[h('span',{key:'dot'},'⠿'),'deepseek / harness']),h('div',{key:'new',className:'nav'},'＋ 新会话'),h('div',{key:'cap',className:'caption'},'WORKSPACE'),h('div',{key:'workspace',className:'nav active'},'⌁  DeepClear'),h('div',{key:'r',className:'nav'},'界面设计与实现'),h('div',{key:'r2',className:'nav'},'梳理插件扩展能力'),h('div',{key:'r3',className:'nav'},'阅读与代码体验'),h('div',{key:'bottom',className:'bottom'},h(Slot,{name:'sidebar.footer.action',wide:true}))]),
+ h('main',{key:'main',className:'center'},[
+ h('header',{key:'header',className:'topbar'},[h('span',{key:'title'},'让复杂工作，清晰发生'),h('span',{key:'tag'},'DEEPCLEAR / 1.8.1')]),
+ home?h(Slot,{key:'hero',name:'conversation.hero.frame',hero:true},h('div',{className:'home'},h('div',{className:'headline'},[h('div',{key:'whale','data-home-whale':''},'◈'),h('div',{key:'title',className:'titleGroup'},'有什么可以帮你？')]))):h('section',{key:'chat',className:'chat','data-slot':'conversation.chat.flow'},[
+ h('div',{key:'user',className:'user'},'帮我设计一套更安静、更清晰的开发界面。保留点阵，也保留工作的专注。'),
+ h('article',{key:'answer','data-chat-flow-kind':'assistant-step','data-chat-group-part':'response'},[
+ h('div',{key:'kicker',className:'kicker'},'DEEPCLEAR · READING'),h('h2',{key:'heading'},'清晰，是一种力量。'),
+ h('p',{key:'p'},['把信息放在合适的位置，让 ',h('strong',{key:'bold'},'重要的内容自然浮现'),'。点阵只在需要反馈时亮起，文字和代码保持安静、准确。']),
+ h('blockquote',{key:'quote'},'丰富的内容，极简的画面。'),
+ h('div',{key:'code',className:'code'},[h('div',{key:'head',className:'codehead'},[h('span',{key:'lang'},'theme.ts'),h('span',{key:'copy'},'复制代码')]),h('pre',{key:'pre'},h('code',null,[h('span',{key:'1',className:'co'},'// Small details. One clear system.\n'),h('span',{key:'2',className:'kw'},'const '),'theme = {\n  accent: ',h('span',{key:'3',className:'st'},'"whale-blue"'),',\n  motion: ',h('span',{key:'4',className:'st'},'"quiet"'),',\n  ',h('span',{key:'5',className:'fn'},'focus'),'() { return ',h('span',{key:'6',className:'kw'},'true'),' }\n}']))]),
+ h('h3',{key:'h3'},'改动清楚可读'),h('div',{key:'diff',className:'diff'},[h('div',{key:'del','data-diff-line':'del'},['− const motion = ',h('span',{key:'literal',className:'st'},'"always-on"')]),h('div',{key:'add','data-diff-line':'add'},['+ const motion = ',h('span',{key:'literal',className:'st'},'"on-demand"')])]),
+ ]),h('div',{key:'status','data-chat-running':''},[h('span',{key:'icon',className:'_runningIcon_fixture'},'◌'),h('span',{key:'label',className:'_runningText_fixture'},'正在思考 · 12 秒')])]),
+ h('section',{key:'settings',id:'settings'},h(Slot,{name:'plugins.bundle.config',view:'page'})),
+ h('div',{key:'composer',className:'composer-wrap'},h('div',{'data-composer-card':''},[h('div',{key:'editor',contentEditable:true,suppressContentEditableWarning:true,'aria-label':'消息'},'继续打磨，让每一次交互都更自然。'),h('div',{key:'bar',className:'toolbar'},[h('span',{key:'model'},'＋　 deepseek-v4　⌄'),h('div',{key:'submit',className:'submitrow'},[h(Slot,{key:'stats',name:'conversation.input.right'}),h('button',{key:'send',className:'send','aria-label':'发送'},'↑')])])]))]),
+ h('aside',{key:'right',className:'workbench'},[h('div',{key:'tabs',className:'tabs'},[h('span',{key:'files',className:'selected'},'文件'),h('span',{key:'preview'},'预览'),h('span',{key:'terminal'},'终端')]),h('div',{key:'cap',className:'caption'},'DEEPCLEAR-UI'),h('div',{key:'f1',className:'file'},'⌄ src'),h('div',{key:'f2',className:'file on'},'　theme.ts'),h('div',{key:'f3',className:'file'},'　settings.ts'),h('div',{key:'f4',className:'file'},'　client.tsx'),h('div',{key:'f5',className:'file'},'⌁ package.json'),h('div',{key:'term',className:'term'},[h('div',{key:'prompt'},[h('b',{key:'arrow'},'❯ '),'npm test']),h('div',{key:'pass'},'✓ preferences'),h('div',{key:'pass2'},'✓ theme lifecycle'),h('div',{key:'end'},'All checks passed.')]),h('div',{key:'note',className:'preview-note'},'开发预览 · 使用真实插件与 React\n宿主页面结构为测试场景')]),h(Slot,{key:'overlay',name:'shell.overlay'})
+])}
+window.fixtureRoot=ReactDOM.createRoot(document.querySelector('#root'));
+window.fixtureRender=(mode='chat')=>{home=mode==='home';document.body.classList.toggle('home-mode',home);document.body.classList.toggle('settings',mode==='settings');fixtureRoot.render(h(Fixture))};
+window.fixtureDispose=()=>{fixtureRoot.unmount();effects.reverse().forEach(fn=>typeof fn==='function'&&fn())};
+window.ready=(async()=>{const styles=await fetch('/theme.css').then(r=>r.text());document.querySelector('#host-theme').textContent=styles;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/client.js';s.onload=resolve;s.onerror=reject;document.head.append(s)});fixturePlugin.apply(fixtureContext);fixtureScheme(new URLSearchParams(location.search).get('scheme')!=='light');fixtureRender();await new Promise(r=>setTimeout(r,60));return true})();
+</script></html>

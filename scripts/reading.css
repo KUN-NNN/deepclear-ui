@@ -1,0 +1,74 @@
+/* DeepClear reading: semantic hooks only; never animate streamed text. */
+body {
+  --dc-accent: var(--dsw-alias-link);
+  --dc-focus: color-mix(in srgb, var(--dc-accent) 18%, transparent);
+}
+
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"]:not([data-chat-group-part="reasoning"]) :is(p, li) {
+  line-height: 1.85;
+  text-wrap: pretty;
+}
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] :is(h1, h2, h3, h4) {
+  color: var(--dsw-alias-label-primary);
+  letter-spacing: -0.015em;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] :is(h2, h3) {
+  padding-block-start: 0.25em;
+}
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] blockquote {
+  border-inline-start: 2px solid color-mix(in srgb, var(--dc-accent) 38%, transparent);
+  padding-inline-start: 1em;
+  color: var(--dsw-alias-label-secondary);
+}
+:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] :is(p, li) > code {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+  border-radius: 4px;
+  padding: 0.12em 0.35em;
+}
+:root:not(.dc-off-code) [data-chat-flow-kind="assistant-step"] pre {
+  font-variant-ligatures: none;
+  tab-size: 2;
+}
+:root:not(.dc-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
+  color: var(--dc-accent);
+}
+:root:not(.dc-off-thinkinglabel) [data-chat-running] {
+  color: var(--dc-accent);
+}
+
+/* Compact figures leave submit reachable in a narrow composer. */
+.dc-stats {
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.015em;
+  font-variant-numeric: tabular-nums;
+}
+.dc-stats-label {
+  margin-inline-end: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+.dc-stats-item { color: var(--dsw-alias-label-secondary); }
+@media (max-width: 640px) {
+  .dc-stats-label { display: none; }
+  .dc-stats { gap: 6px; }
+}
+@media (max-width: 420px) {
+  .dc-stats-output { display: none; }
+}
+.dc-switch:disabled { cursor: default; opacity: 0.48; }
+.dc-set-reset:disabled { cursor: default; opacity: 0.48; }
+.dc-settings-status {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+.dc-settings-status[role="alert"] { color: var(--dsw-alias-state-error-primary); }
+@media (prefers-reduced-motion: reduce) {
+  .dc-sheet-panel, .dc-sheet-scrim { animation: none; }
+  [data-composer-card] { transition: none !important; }
+}

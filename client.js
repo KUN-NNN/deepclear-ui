@@ -1211,6 +1211,121 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+/* -------------------------------------------------------- sidebar entry + sheet */
+.dc-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dc-foot-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dc-foot-button:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.1));
+  color: var(--dsw-alias-label-primary);
+}
+
+.dc-foot-button:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color, #7aaaff);
+  outline-offset: 1px;
+}
+
+.dc-foot-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dc-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483001;
+}
+
+.dc-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.dc-sheet-panel {
+  position: absolute;
+  left: 14px;
+  bottom: 78px;
+  width: min(420px, calc(100vw - 28px));
+  max-height: min(72vh, 640px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 14px;
+  background: var(--dsw-specific-menu);
+  box-shadow: var(--dsw-elevation-panel, 0 18px 48px rgba(0, 0, 0, 0.42));
+  overflow: hidden;
+  animation: dc-sheet-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes dc-sheet-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dc-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+}
+
+.dc-sheet-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dc-sheet-close {
+  border: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dc-sheet-close:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.1));
+  color: var(--dsw-alias-label-primary);
+}
+
+.dc-sheet-body {
+  padding: 4px 16px 8px;
+  overflow-y: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-sheet-panel { animation: none; }
+}
 `
 
     /** Frame-wide ambient layer: sonar dot rings plus edge breathing glow. */
@@ -1614,6 +1729,86 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
     }
 
 
+    // ----------------------------------------------------------- sidebar entry
+    /** Sheet state shared by the sidebar button and the panel itself. */
+    let dcSheetOpen = false
+    const dcSheetListeners = new Set()
+    function dcSetSheetOpen(next) {
+      dcSheetOpen = next
+      dcSheetListeners.forEach((listener) => listener())
+    }
+    function useDcSheet() {
+      const [open, setOpen] = React.useState(dcSheetOpen)
+      React.useEffect(() => {
+        const listener = () => setOpen(dcSheetOpen)
+        dcSheetListeners.add(listener)
+        return () => { dcSheetListeners.delete(listener) }
+      }, [])
+      return open
+    }
+    let dcReactDOM = null
+    try {
+      dcReactDOM = require('react-dom')
+    } catch (error) {
+      dcReactDOM = null
+    }
+
+    /** The floating settings sheet, portalled to the body when react-dom is around. */
+    function DcSheet() {
+      const open = useDcSheet()
+      React.useEffect(() => {
+        if (!open) return undefined
+        const onKeyDown = (event) => {
+          if (event.key === 'Escape') dcSetSheetOpen(false)
+        }
+        document.addEventListener('keydown', onKeyDown)
+        return () => { document.removeEventListener('keydown', onKeyDown) }
+      }, [open])
+      if (!open) return null
+      const panel = h('div', { className: 'dc-sheet-panel', role: 'dialog', 'aria-label': 'DeepClear UI settings' }, [
+        h('div', { key: 'head', className: 'dc-sheet-head' }, [
+          h('span', { key: 'title', className: 'dc-sheet-title' }, 'DeepClear UI'),
+          h('button', {
+            key: 'close',
+            type: 'button',
+            className: 'dc-sheet-close',
+            'aria-label': 'Close',
+            onClick: () => dcSetSheetOpen(false),
+          }, '\u00d7'),
+        ]),
+        h('div', { key: 'body', className: 'dc-sheet-body' }, h(DcSettingsPage)),
+      ])
+      const scrim = h('div', {
+        key: 'scrim',
+        className: 'dc-sheet-scrim',
+        onClick: () => dcSetSheetOpen(false),
+      })
+      const both = h('div', { className: 'dc-sheet-root' }, [scrim, panel])
+      if (dcReactDOM !== null && typeof dcReactDOM.createPortal === 'function') {
+        return dcReactDOM.createPortal(both, document.body)
+      }
+      return both
+    }
+
+    /** Sidebar footer button that opens the sheet. */
+    function DcSidebarAction({ wide }) {
+      return h('div', { className: 'dc-foot' }, [
+        h('button', {
+          key: 'button',
+          type: 'button',
+          className: 'dc-foot-button',
+          title: 'DeepClear UI',
+          'aria-label': 'DeepClear UI settings',
+          onClick: () => dcSetSheetOpen(!dcSheetOpen),
+        }, [
+          h(DcSettingsIcon, { key: 'icon', size: 16, active: dcSheetOpen }),
+          wide ? h('span', { key: 'label', className: 'dc-foot-label' }, 'DeepClear UI') : null,
+        ]),
+        h(DcSheet, { key: 'sheet' }),
+      ])
+    }
+
+
     return {
       inject: ['slots'],
       apply(ctx) {
@@ -1645,17 +1840,12 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
         guarded('settings', () => {
           dcApplySettings()
           ctx.effect(() => () => {}, 'deepclear-ui: settings')
-          ctx.slots.inject('settings.section', () => ctx.slots.register({
-            name: 'settings.section',
+          ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+            name: 'sidebar.footer.action',
             id: 'deepclear-ui',
-            order: 25,
+            order: 5,
             label: () => 'DeepClear UI',
-          }, DcSettingsPage))
-          ctx.slots.inject('settings.section.icon', () => ctx.slots.register({
-            name: 'settings.section.icon',
-            id: 'deepclear-ui',
-            order: 25,
-          }, DcSettingsIcon))
+          }, DcSidebarAction))
         })
 
         guarded('composer-stats', () => {

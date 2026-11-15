@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.0
+
+- The settings page moved out of Settings and into the sidebar foot: a **DeepClear UI** button
+  (nine-dot icon + label) opens a floating sheet with the same switches, portalled to the body
+- `Esc` and a scrim click close the sheet; the old `settings.section` entry is gone
+
 ## 1.4.2
 
 - Settings navigation: the section label is registered as a thunk (the shell resolves nav

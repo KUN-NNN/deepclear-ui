@@ -49,15 +49,17 @@ work is done.
 
 ## Settings
 
-**Settings ▸ DeepClear UI** carries one switch per feature, applied instantly and remembered
-per profile (stored in `localStorage`):
+The sidebar foot carries a **DeepClear UI** button (nine dots + name). It opens a floating
+sheet with one switch per feature, applied instantly and remembered per profile (stored in
+`localStorage`):
 
 - Welcome page: dot artwork, dot field, bottom wave, pointer ripples
 - Thinking: dot sphere, English label
 - Composer: dot floor, frosted glass, usage readout
 - Accents: whale-blue bold, focus ring, re-inked diffs
 
-There is a single "Reset to defaults" action at the bottom.
+There is a single "Reset to defaults" action at the bottom. `Esc` or a click on the
+scrim closes the sheet.
 
 ## Accents
 

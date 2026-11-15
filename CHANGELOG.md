@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.2
+
+- Fix: the nine-dot icon component was lost while the settings page was rewritten for the
+  sidebar sheet, so the sidebar button threw on render and vanished. Restored, and every
+  registered component is now render-checked before release.
+
 ## 1.5.1
 
 - Settings sheet copy follows the app language: Chinese when the UI is Chinese, English

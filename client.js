@@ -1824,6 +1824,29 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       return both
     }
 
+    /** Nine-dot glyph used by the sidebar button and its active state. */
+    function DcSettingsIcon({ size = 16, active }) {
+      const unit = size / 16
+      const points = [
+        [3, 3], [8, 3], [13, 3],
+        [3, 8], [8, 8], [13, 8],
+        [3, 13], [8, 13], [13, 13],
+      ]
+      return h('svg', {
+        viewBox: '0 0 16 16',
+        width: size,
+        height: size,
+        'aria-hidden': 'true',
+        style: { display: 'block' },
+      }, points.map((point, index) => h('circle', {
+        key: index,
+        cx: point[0],
+        cy: point[1],
+        r: 1.35 * unit,
+        fill: active ? '#7aaaff' : 'currentColor',
+      })))
+    }
+
     /** Sidebar footer button that opens the sheet. */
     function DcSidebarAction({ wide }) {
       return h('div', { className: 'dc-foot' }, [

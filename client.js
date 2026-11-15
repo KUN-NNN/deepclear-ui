@@ -1594,7 +1594,7 @@ body {
           const style = getComputedStyle(state.row)
           const radius = parseFloat(style.borderTopLeftRadius) || 8
           const accent = (style.getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
-          const reach = 46
+          const reach = 74
           context.save()
           context.beginPath()
           if (typeof context.roundRect === 'function') {
@@ -1612,7 +1612,7 @@ body {
               const dy = y - state.y
               const distance = Math.sqrt(dx * dx + dy * dy)
               if (distance > reach) continue
-              const alpha = Math.pow(1 - distance / reach, 1.6) * state.alpha * 0.72
+              const alpha = Math.pow(1 - distance / reach, 1.35) * state.alpha * 0.72
               if (alpha < 0.02) continue
               context.globalAlpha = Math.min(1, alpha)
               context.beginPath()
@@ -2217,7 +2217,7 @@ body {
             state.live = false
             return
           }
-          const radius = 46
+          const radius = 64
           const accent = (getComputedStyle(button).getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
           context.fillStyle = accent
           for (let y = 3; y < height; y += 4) {
@@ -2226,7 +2226,7 @@ body {
               const dy = y - state.y
               const distance = Math.sqrt(dx * dx + dy * dy)
               if (distance > radius) continue
-              const alpha = Math.pow(1 - distance / radius, 1.6) * state.alpha
+              const alpha = Math.pow(1 - distance / radius, 1.35) * state.alpha
               if (alpha < 0.02) continue
               context.globalAlpha = Math.min(1, alpha)
               context.beginPath()

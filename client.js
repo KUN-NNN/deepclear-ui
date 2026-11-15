@@ -1440,8 +1440,20 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
               : getComputedStyle(label).color
           }
           const size = 24
-          const cx = bounds.left + 1 + size / 2
-          const cy = bounds.top + Math.min(bounds.height, 30) / 2
+          // When our English label is on, the host text is invisible and the sphere
+          // owns the row's left edge. When it is off, the host text is visible, so the
+          // sphere anchors to the left of that text instead of overlapping it.
+          const hostLabel = row.querySelector('[class*="_runningText"]')
+          const labelVisible = settings !== undefined && settings.thinkingLabel === false
+          let cx = bounds.left + 1 + size / 2
+          let cy = bounds.top + Math.min(bounds.height, 30) / 2
+          if (labelVisible && hostLabel !== null) {
+            const labelRect = hostLabel.getBoundingClientRect()
+            if (labelRect.width > 0) {
+              cx = Math.max(size / 2 + 6, labelRect.left - size / 2 - 8)
+              cy = labelRect.top + labelRect.height / 2
+            }
+          }
           const radius = size / 2 - 2
           const spin = time * 1.5
           const tilt = 0.42

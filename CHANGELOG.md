@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.8
+
+- The dot sphere now measures the host label: with the English label off, it anchors to the
+  left of the visible status text instead of drawing on top of it.
+
 ## 1.5.7
 
 - Fix: the two Thinking switches read the wrong keys (`sphere` / `label` instead of

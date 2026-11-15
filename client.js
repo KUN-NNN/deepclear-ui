@@ -2171,6 +2171,12 @@ body {
           } else if (!state.live) {
             wake()
           }
+          // Watchdog: 1.2s after a level change the field must be at full width, even if
+          // some frame starved the entrance.
+          if (state.eased < 1 && performance.now() - state.started > 1200) {
+            state.eased = 1
+            wake()
+          }
         }
 
         let syncQueued = false

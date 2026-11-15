@@ -1890,6 +1890,8 @@ body {
         const motion = matchMedia('(prefers-reduced-motion: reduce)')
         const state = {
           active: false,
+          word: '',
+          isMax: false,
           thinking: false,
           pulseStart: 0,
           started: 0,
@@ -1903,13 +1905,14 @@ body {
         let dpr = Math.min(2, devicePixelRatio || 1)
 
         const cardOf = () => document.querySelector('[data-composer-card]')
-        const effortIsMax = card => {
-          if (card === null) return false
+        const effortLabelOf = card => {
+          if (card === null) return null
           const node = card.querySelector('[class*="_triggerEffort"]')
-          if (node === null) return false
-          const text = (node.textContent || '').trim().toLowerCase()
-          return text === 'max' || text.endsWith('max')
+          if (node === null) return null
+          const text = (node.textContent || '').trim()
+          return text === '' ? null : text
         }
+        const isOffEffort = label => /^(off|none|disabled?|无|关闭)$/i.test(label)
         const areaOf = card => {
           if (card === null) return null
           const editable = card.querySelector('[contenteditable="true"], [role="textbox"], textarea')
@@ -1946,9 +1949,11 @@ body {
 
         // Sample MAX into the dot grid once per geometry; the glyph never moves.
         const glyphOf = area => {
-          const key = Math.round(area.width) + 'x' + Math.round(area.height)
+          const word = state.word === '' ? 'MAX' : state.word
+          const key = word + ':' + Math.round(area.width) + 'x' + Math.round(area.height)
           if (state.glyph !== null && state.lock === key) return state.glyph
-          const fontSize = Math.max(18, Math.min(area.height * 0.84, area.width * 0.3, 78))
+          const fitted = Math.min(area.height * 0.84, (area.width * 0.86) / Math.max(1, word.length * 0.62), 78)
+          const fontSize = Math.max(16, fitted)
           const probe = document.createElement('canvas')
           probe.width = Math.ceil(area.width)
           probe.height = Math.ceil(area.height)
@@ -1962,7 +1967,7 @@ body {
           if ('letterSpacing' in probeContext) probeContext.letterSpacing = Math.round(fontSize * 0.06) + 'px'
           // The word sits a touch below the band's midline; the field itself stays put.
           const drop = Math.round(probe.height * 0.06)
-          probeContext.fillText('MAX', probe.width / 2, probe.height / 2 + drop)
+          probeContext.fillText(word, probe.width / 2, probe.height / 2 + drop)
           const pixels = probeContext.getImageData(0, 0, probe.width, probe.height).data
           const dots = []
           const pitch = 3
@@ -2064,8 +2069,9 @@ body {
           if (glyphAlpha > 0.01) {
             const glyph = glyphOf(area)
             if (glyph !== null) {
-              context.fillStyle = accent
-              context.shadowColor = accent
+              const ink = state.isMax ? accent : '#ffffff'
+              context.fillStyle = ink
+              context.shadowColor = ink
               context.shadowBlur = 6
               for (const dot of glyph.dots) {
                 context.globalAlpha = Math.min(1, glyphAlpha)
@@ -2100,13 +2106,18 @@ body {
             if (thinking) state.pulseStart = performance.now()
             wake()
           }
-          const next = effortIsMax(card)
-          if (next !== state.active) {
-            state.active = next
+          const label = effortLabelOf(card)
+          const active = label !== null && !isOffEffort(label)
+          state.active = active
+          if (!active) return
+          const word = label.toUpperCase()
+          if (word !== state.word) {
+            state.word = word
+            state.isMax = word === 'MAX'
+            state.started = performance.now()
             state.glyph = null
-            if (next) state.started = performance.now()
             wake()
-          } else if (next && !state.live) {
+          } else if (!state.live) {
             wake()
           }
         }

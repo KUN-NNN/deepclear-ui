@@ -304,6 +304,8 @@ window.__ModuleLoader__.load({
       const onPointerLeave = () => { pointerActive = false }
       /** Moving the pointer over the field band leaves a light ripple behind. */
       const spawnRipple = () => {
+        const cfg = window.__dcSettings
+        if (cfg !== undefined && cfg.ripple === false) return
         const nowMs = performance.now()
         if (nowMs - lastRippleAt < 90) return
         const bandTop = boxHeight - Math.min(440, Math.max(230, boxHeight * 0.4))
@@ -355,6 +357,13 @@ window.__ModuleLoader__.load({
 
         const paint = (now) => {
         if (disposed) return
+        const cfg = window.__dcSettings
+        if (cfg !== undefined && cfg.hero === false) {
+          context.setTransform(dpr, 0, 0, dpr, 0, 0)
+          context.clearRect(0, 0, width, height)
+          frame = requestAnimationFrame(paint)
+          return
+        }
         if (revealStarted === 0 && width > 200 && height > 200) revealStarted = now
         // The assembly is a short, fast reveal: give it a smoother frame rate
         // than the slow twinkle, then fall back to the cheap cadence.
@@ -604,7 +613,7 @@ window.__ModuleLoader__.load({
         context.setTransform(dpr, 0, 0, dpr, 0, 0)
         context.clearRect(0, 0, width, height)
         // The field is painted after the clear so it survives the frame.
-        if (bgLayer !== null) {
+        if (bgLayer !== null && (cfg === undefined || cfg.field !== false)) {
           context.drawImage(bgLayer, 0, 0, width, height)
         }
         const focusTarget = composerFocused ? 1 : 0
@@ -636,7 +645,7 @@ window.__ModuleLoader__.load({
           }
         }
 
-        if (!reduced && fieldDots !== null) {
+        if (!reduced && fieldDots !== null && (cfg === undefined || cfg.wave !== false)) {
           const dt = 1 / 30
           const unit = pitch / 8
           const fieldRadius = Math.max(0.45, pitch * 0.11)
@@ -826,7 +835,7 @@ const CSS = `
 
 /* ------------------------------------------------------------------ accents */
 
-[data-slot="conversation.chat.flow"] :is(p, li, td, blockquote, h1, h2, h3, h4, h5, h6) :is(strong, b) {
+:root:not(.dc-off-bold) [data-slot="conversation.chat.flow"] :is(p, li, td, blockquote, h1, h2, h3, h4, h5, h6) :is(strong, b) {
   color: #7aaaff;
 }
 
@@ -845,7 +854,7 @@ body:has(canvas.dwe-whale) [data-composer-card] {
   background: var(--dsw-specific-menu);
 }
 
-body:not(:has(canvas.dwe-whale)) [data-composer-card] {
+:root:not(.dc-off-glass) body:not(:has(canvas.dwe-whale)) [data-composer-card] {
   background: color-mix(in srgb, var(--dsw-specific-menu) 62%, transparent);
   -webkit-backdrop-filter: blur(26px) saturate(120%);
   backdrop-filter: blur(26px) saturate(120%);
@@ -863,7 +872,7 @@ body[data-ds-dark-theme] {
 
 /* Session: a wide floor of dots pinned to the bottom of the window, fading up over
    a long range so the field reads as depth rather than a stripe. */
-body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card])::before {
+:root:not(.dc-off-composerfield) body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card])::before {
   content: '';
   position: fixed;
   left: 0;
@@ -898,7 +907,7 @@ body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card])::before {
   transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::before {
+:root:not(.dc-off-composerfield) body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::before {
   opacity: 0.5;
   animation: dc-composer-breathe 5.2s ease-in-out infinite;
 }
@@ -909,7 +918,7 @@ body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::bef
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::before {
+  :root:not(.dc-off-composerfield) body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::before {
     animation: none;
   }
 }
@@ -918,7 +927,7 @@ body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::bef
    instead of recolouring it (a rebinding token switches instantly and reads as a
    pop). Both states declare the same shadow layers so the transition interpolates
    every layer, and the easing starts quickly and settles slowly. */
-[data-composer-card] {
+:root:not(.dc-off-focusring) [data-composer-card] {
   box-shadow:
     var(--dsw-elevation-soft),
     inset 0 0 0 1px rgba(122, 170, 255, 0),
@@ -926,7 +935,7 @@ body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::bef
   transition: box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-[data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
+:root:not(.dc-off-focusring) [data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
   box-shadow:
     var(--dsw-elevation-soft),
     inset 0 0 0 1.2px rgba(122, 170, 255, 0.85),
@@ -938,7 +947,7 @@ body:not(:has(canvas.dwe-whale)) *:has(> [data-composer-card]):focus-within::bef
    tokens, which the deliverables comparison reads directly — no DOM coupling,
    so the plate colours also follow light/dark automatically. The html-body
    prefix outranks the shipped selector regardless of stylesheet order. */
-html body {
+:root:not(.dc-off-diff) html body {
   --dsw-alias-file-diff-deleted-bg: rgb(20 40 110 / 16%);
   --dsw-alias-file-diff-deleted-gutter: rgb(20 40 110 / 8%);
   --dsw-alias-file-diff-deleted-marker: #142f7e;
@@ -983,22 +992,22 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
    paints its own row fills would ignore it; these rules make the row itself
    blue regardless, and re-declare the row-local gutter/marker variables the
    number cells consume. */
-html body [data-diff-line="add"] {
+:root:not(.dc-off-diff) html body [data-diff-line="add"] {
   --diff-gutter-fill: rgb(122 170 255 / 8%);
   --diff-marker: #7aaaff;
   background: #eaf1ff;
 }
-html body [data-diff-line="del"] {
+:root:not(.dc-off-diff) html body [data-diff-line="del"] {
   --diff-gutter-fill: rgb(20 40 110 / 8%);
   --diff-marker: #142f7e;
   background: #d9dde8;
 }
-html body[data-ds-dark-theme] [data-diff-line="add"] {
+:root:not(.dc-off-diff) html body[data-ds-dark-theme] [data-diff-line="add"] {
   --diff-gutter-fill: rgb(122 170 255 / 12%);
   --diff-marker: #a9c2ff;
   background: #2d394f;
 }
-html body[data-ds-dark-theme] [data-diff-line="del"] {
+:root:not(.dc-off-diff) html body[data-ds-dark-theme] [data-diff-line="del"] {
   --diff-gutter-fill: rgb(20 40 110 / 32%);
   --diff-marker: #6e8cff;
   background: #141f47;
@@ -1008,14 +1017,14 @@ html body[data-ds-dark-theme] [data-diff-line="del"] {
 /* The running status row is the live turn indicator: a 14px animated whale tail
    plus a shimmering label. Swap the tail for a dot-matrix wave in whale blue and
    tint the hairline above it, keeping the shipped layout and the label text. */
-[data-chat-running] [class*="_runningIcon"] {
+:root:not(.dc-off-thinkingsphere) [data-chat-running] [class*="_runningIcon"] {
   display: none;
 }
 
 
 /* The label is redrawn on our own canvas so its wording and the sphere share one
    surface; the host text stays in the DOM for layout and screen readers. */
-[data-chat-running] [class*="_runningText"] {
+:root:not(.dc-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
   opacity: 0;
 }
 
@@ -1060,8 +1069,147 @@ html body[data-ds-dark-theme] [data-diff-line="del"] {
 }
 
 /* The shipped stats strip below the card now lives in the button row instead. */
-[data-composer-dock] > * {
+:root:not(.dc-off-stats) [data-composer-dock] > * {
   display: none !important;
+}
+
+/* ------------------------------------------------------------ settings page */
+.dc-set {
+  max-width: 720px;
+  padding: 4px 2px 24px;
+  color: var(--dsw-alias-label-primary);
+  font-synthesis: none;
+}
+
+.dc-set-lead {
+  margin: 0 0 18px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: 1.5;
+}
+
+.dc-set-group {
+  margin: 0 0 22px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+}
+
+.dc-set-group:last-of-type {
+  border-bottom: 0;
+}
+
+.dc-set-group-title {
+  margin: 0 0 6px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dc-set-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid color-mix(in srgb, var(--dsw-alias-border-l1) 55%, transparent);
+}
+
+.dc-set-group-title + .dc-set-row {
+  border-top: 0;
+}
+
+.dc-set-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.dc-set-label {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.dc-set-desc {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dc-switch {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--dsw-alias-label-tertiary) 34%, transparent);
+  cursor: pointer;
+  transition: background 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dc-switch[data-on] {
+  background: #7aaaff;
+}
+
+.dc-switch:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color, #7aaaff);
+  outline-offset: 2px;
+}
+
+.dc-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dc-switch[data-on] .dc-switch-knob {
+  transform: translateX(16px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-switch,
+  .dc-switch-knob {
+    transition: none;
+  }
+}
+
+.dc-set-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.dc-set-reset {
+  padding: 7px 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dc-set-reset:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.1));
+}
+
+.dc-set-note {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 `
 
@@ -1144,6 +1292,8 @@ html body[data-ds-dark-theme] [data-diff-line="del"] {
         }
 
         const sphere = (time) => {
+          const settings = window.__dcSettings
+          if (settings !== undefined && settings.thinkingSphere === false && settings.thinkingLabel === false) return
           const row = document.querySelector('[data-chat-running]')
           if (row === null) {
             rowCache.element = null
@@ -1179,7 +1329,9 @@ html body[data-ds-dark-theme] [data-diff-line="del"] {
           const cosTilt = Math.cos(tilt)
           const sinTilt = Math.sin(tilt)
           const fade = Math.max(intensity, 0.55)
+          const showSphere = settings === undefined || settings.thinkingSphere !== false
           for (const point of GLOBE) {
+            if (!showSphere) break
             const x1 = point[0] * cosSpin + point[2] * sinSpin
             const z1 = -point[0] * sinSpin + point[2] * cosSpin
             const y2 = point[1] * cosTilt - z1 * sinTilt
@@ -1190,6 +1342,7 @@ html body[data-ds-dark-theme] [data-diff-line="del"] {
             context.arc(cx + x1 * radius, cy + y2 * radius, 0.55 + 0.85 * depth, 0, Math.PI * 2)
             context.fill()
           }
+          if (settings !== undefined && settings.thinkingLabel === false) return
           const seconds = Math.max(0, Math.round(time - rowCache.since))
           const label = 'Deep thinking for ' + seconds + 's. . .'
           context.font = '500 12.5px "Microsoft YaHei", "Segoe UI", system-ui, sans-serif'
@@ -1260,6 +1413,7 @@ html body[data-ds-dark-theme] [data-diff-line="del"] {
 
     /** Compact session stats for the composer button row. */
     function DcStats(props) {
+      if (window.__dcSettings !== undefined && window.__dcSettings.stats === false) return null
       let usage
       let pressure
       try {
@@ -1295,6 +1449,147 @@ html body[data-ds-dark-theme] [data-diff-line="del"] {
       ])
     }
 
+    // ---------------------------------------------------------------- settings
+    /** Persisted preferences for the dot layer. Flags gate CSS and the canvas. */
+    const DC_SETTINGS_KEY = 'deepclear-ui:settings'
+    const DC_DEFAULT_SETTINGS = {
+      hero: true,
+      field: true,
+      wave: true,
+      ripple: true,
+      thinkingSphere: true,
+      thinkingLabel: true,
+      composerField: true,
+      glass: true,
+      bold: true,
+      focusRing: true,
+      diff: true,
+      stats: true,
+    }
+    const DC_OFF_CLASS = {
+      hero: 'dc-off-hero',
+      field: 'dc-off-field',
+      wave: 'dc-off-wave',
+      ripple: 'dc-off-ripple',
+      thinkingSphere: 'dc-off-thinkingsphere',
+      thinkingLabel: 'dc-off-thinkinglabel',
+      composerField: 'dc-off-composerfield',
+      glass: 'dc-off-glass',
+      bold: 'dc-off-bold',
+      focusRing: 'dc-off-focusring',
+      diff: 'dc-off-diff',
+      stats: 'dc-off-stats',
+    }
+
+    let dcSettings = (() => {
+      const merged = { ...DC_DEFAULT_SETTINGS }
+      try {
+        const raw = window.localStorage.getItem(DC_SETTINGS_KEY)
+        if (raw !== null) {
+          const parsed = JSON.parse(raw)
+          for (const key of Object.keys(merged)) {
+            if (typeof parsed[key] === 'boolean') merged[key] = parsed[key]
+          }
+        }
+      } catch (error) {
+        console.warn('[deepclear-ui] settings load failed', error)
+      }
+      return merged
+    })()
+
+    function dcApplySettings() {
+      const root = document.documentElement
+      for (const key of Object.keys(DC_OFF_CLASS)) {
+        root.classList.toggle(DC_OFF_CLASS[key], dcSettings[key] === false)
+      }
+      // The hero canvas and the overlay read this live, without a re-render.
+      window.__dcSettings = dcSettings
+    }
+
+    function dcSaveSettings() {
+      try {
+        window.localStorage.setItem(DC_SETTINGS_KEY, JSON.stringify(dcSettings))
+      } catch (error) {
+        console.warn('[deepclear-ui] settings save failed', error)
+      }
+    }
+
+    function dcSetSetting(key, value) {
+      dcSettings[key] = value
+      dcSaveSettings()
+      dcApplySettings()
+    }
+
+    /** One settings row: a label on the left and a switch on the right. */
+    function DcSwitch({ label, description, value, onChange }) {
+      return h('div', { className: 'dc-set-row' }, [
+        h('div', { key: 'text', className: 'dc-set-text' }, [
+          h('span', { key: 'label', className: 'dc-set-label' }, label),
+          description === undefined
+            ? null
+            : h('span', { key: 'desc', className: 'dc-set-desc' }, description),
+        ]),
+        h('button', {
+          key: 'switch',
+          type: 'button',
+          role: 'switch',
+          'aria-checked': value ? 'true' : 'false',
+          'aria-label': label,
+          className: 'dc-switch',
+          'data-on': value ? 'true' : undefined,
+          onClick: () => onChange(!value),
+        }, h('span', { className: 'dc-switch-knob' })),
+      ])
+    }
+
+    /** The Settings ▸ DeepClear UI page. */
+    function DcSettingsPage() {
+      const [state, setState] = React.useState({ ...dcSettings })
+      const update = (key) => (value) => {
+        dcSetSetting(key, value)
+        setState({ ...dcSettings })
+      }
+      const reset = () => {
+        for (const key of Object.keys(DC_DEFAULT_SETTINGS)) dcSettings[key] = DC_DEFAULT_SETTINGS[key]
+        dcSaveSettings()
+        dcApplySettings()
+        setState({ ...dcSettings })
+      }
+      const group = (title, children) => h('section', { key: title, className: 'dc-set-group' }, [
+        h('h3', { key: 'title', className: 'dc-set-group-title' }, title),
+        ...children,
+      ])
+      return h('div', { className: 'dc-set' }, [
+        h('p', { key: 'lead', className: 'dc-set-lead' },
+          'Everything on this page applies immediately and is remembered per profile.'),
+        group('Welcome page', [
+          h(DcSwitch, { key: 'hero', label: 'Dot artwork', description: 'The portrait and the wordmark on the blank home', value: state.hero, onChange: update('hero') }),
+          h(DcSwitch, { key: 'field', label: 'Dot field', description: 'The faint lattice behind everything', value: state.field, onChange: update('field') }),
+          h(DcSwitch, { key: 'wave', label: 'Bottom wave', description: 'The slow brightness wave along the bottom edge', value: state.wave, onChange: update('wave') }),
+          h(DcSwitch, { key: 'ripple', label: 'Pointer ripples', description: 'Light rings where the pointer crosses the field', value: state.ripple, onChange: update('ripple') }),
+        ]),
+        group('Thinking', [
+          h(DcSwitch, { key: 'sphere', label: 'Dot sphere', description: 'The rotating point-sphere beside the live status', value: state.thinkingSphere, onChange: update('thinkingSphere') }),
+          h(DcSwitch, { key: 'label', label: 'English label', description: 'Replace the status text with “Deep thinking for 12s. . .”', value: state.thinkingLabel, onChange: update('thinkingLabel') }),
+        ]),
+        group('Composer', [
+          h(DcSwitch, { key: 'composer', label: 'Dot floor', description: 'The dot band under the input on session pages', value: state.composerField, onChange: update('composerField') }),
+          h(DcSwitch, { key: 'glass', label: 'Frosted glass', description: 'Translucent input card on session pages', value: state.glass, onChange: update('glass') }),
+          h(DcSwitch, { key: 'stats', label: 'Usage readout', description: 'Context and token usage in the button row', value: state.stats, onChange: update('stats') }),
+        ]),
+        group('Accents', [
+          h(DcSwitch, { key: 'bold', label: 'Whale-blue bold', description: 'Bold runs in chat prose take the accent colour', value: state.bold, onChange: update('bold') }),
+          h(DcSwitch, { key: 'focus', label: 'Focus ring', description: 'The soft ring while the composer has focus', value: state.focusRing, onChange: update('focusRing') }),
+          h(DcSwitch, { key: 'diff', label: 'Re-inked diffs', description: 'Added and removed lines in the blue family', value: state.diff, onChange: update('diff') }),
+        ]),
+        h('div', { key: 'footer', className: 'dc-set-footer' }, [
+          h('button', { key: 'reset', type: 'button', className: 'dc-set-reset', onClick: reset }, 'Reset to defaults'),
+          h('span', { key: 'note', className: 'dc-set-note' }, 'deepclear-ui · npm i deepclear-ui'),
+        ]),
+      ])
+    }
+
+
     return {
       inject: ['slots'],
       apply(ctx) {
@@ -1305,6 +1600,17 @@ html body[data-ds-dark-theme] [data-diff-line="del"] {
           document.head.append(style)
           return () => { style.remove() }
         }, 'whale-emphasis: accent styles')
+
+        guarded('settings', () => {
+          dcApplySettings()
+          ctx.effect(() => () => {}, 'deepclear-ui: settings')
+          ctx.slots.inject('settings.section', () => ctx.slots.register({
+            name: 'settings.section',
+            id: 'deepclear-ui',
+            order: 25,
+            label: 'DeepClear UI',
+          }, DcSettingsPage))
+        })
 
         // The welcome-page layer is the core of this plugin: register it first so a
         // failure in the experimental chat hooks can never take it down.

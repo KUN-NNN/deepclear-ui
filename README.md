@@ -47,6 +47,18 @@ work is done.
 - **Stats**: context usage and token usage move from the strip below the card into the send
   button row, as compact tabular figures
 
+## Settings
+
+**Settings ▸ DeepClear UI** carries one switch per feature, applied instantly and remembered
+per profile (stored in `localStorage`):
+
+- Welcome page: dot artwork, dot field, bottom wave, pointer ripples
+- Thinking: dot sphere, English label
+- Composer: dot floor, frosted glass, usage readout
+- Accents: whale-blue bold, focus ring, re-inked diffs
+
+There is a single "Reset to defaults" action at the bottom.
+
 ## Accents
 
 Whale blue is `#7AAAFF`, used in three places:

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0
+
+### Settings
+
+- New **Settings ▸ DeepClear UI** page: one switch per feature (welcome artwork, dot field,
+  bottom wave, pointer ripples, thinking sphere, English label, dot floor, frosted glass,
+  usage readout, whale-blue bold, focus ring, re-inked diffs)
+- Preferences persist in `localStorage` and apply immediately — CSS features through a root
+  class, canvas features through a live settings object
+- "Reset to defaults" restores every switch
+
 ## 1.3.0
 
 ### Welcome page

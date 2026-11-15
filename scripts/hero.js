@@ -280,6 +280,8 @@
       const onPointerLeave = () => { pointerActive = false }
       /** Moving the pointer over the field band leaves a light ripple behind. */
       const spawnRipple = () => {
+        const cfg = window.__dcSettings
+        if (cfg !== undefined && cfg.ripple === false) return
         const nowMs = performance.now()
         if (nowMs - lastRippleAt < 90) return
         const bandTop = boxHeight - Math.min(440, Math.max(230, boxHeight * 0.4))
@@ -331,6 +333,13 @@
 
         const paint = (now) => {
         if (disposed) return
+        const cfg = window.__dcSettings
+        if (cfg !== undefined && cfg.hero === false) {
+          context.setTransform(dpr, 0, 0, dpr, 0, 0)
+          context.clearRect(0, 0, width, height)
+          frame = requestAnimationFrame(paint)
+          return
+        }
         if (revealStarted === 0 && width > 200 && height > 200) revealStarted = now
         // The assembly is a short, fast reveal: give it a smoother frame rate
         // than the slow twinkle, then fall back to the cheap cadence.
@@ -580,7 +589,7 @@
         context.setTransform(dpr, 0, 0, dpr, 0, 0)
         context.clearRect(0, 0, width, height)
         // The field is painted after the clear so it survives the frame.
-        if (bgLayer !== null) {
+        if (bgLayer !== null && (cfg === undefined || cfg.field !== false)) {
           context.drawImage(bgLayer, 0, 0, width, height)
         }
         const focusTarget = composerFocused ? 1 : 0
@@ -612,7 +621,7 @@
           }
         }
 
-        if (!reduced && fieldDots !== null) {
+        if (!reduced && fieldDots !== null && (cfg === undefined || cfg.wave !== false)) {
           const dt = 1 / 30
           const unit = pitch / 8
           const fieldRadius = Math.max(0.45, pitch * 0.11)

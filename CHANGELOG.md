@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.6
+
+- Settings switches: a 48x28 capsule track (radius exactly half the height) with a round
+  knob inside, so the shape reads as a pill rather than a rounded rectangle
+- The sidebar sheet corner radius grows from 14px to 20px
+
 ## 1.5.5
 
 - Settings switches are capsules now: a wider track with a capsule-shaped knob sliding

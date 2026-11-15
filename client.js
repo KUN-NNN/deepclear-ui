@@ -1141,12 +1141,12 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
 .dc-switch {
   position: relative;
   flex: none;
-  width: 46px;
-  height: 26px;
+  width: 48px;
+  height: 28px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--dsw-alias-label-tertiary) 34%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--dsw-alias-label-tertiary) 38%, transparent);
   cursor: pointer;
   transition: background 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -1164,16 +1164,16 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   position: absolute;
   top: 4px;
   left: 4px;
-  width: 24px;
-  height: 18px;
-  border-radius: 999px;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
   background: #fff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dc-switch[data-on] .dc-switch-knob {
-  transform: translateX(14px);
+  transform: translateX(20px);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1275,7 +1275,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 14px;
+  border-radius: 20px;
   /* Opaque on purpose: a raised surface layered over the base colour, so the panel is
      always solid and always uses the app's own palette instead of a hand-picked grey. */
   background-color: var(--dsw-alias-bg-base, #f6f6f8);

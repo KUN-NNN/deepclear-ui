@@ -1564,7 +1564,7 @@ body {
           }
           context.restore()
           context.globalAlpha = 1
-          if (window.__dcDebugPaint === true) {
+          if (window.__dcDebugPaint !== false) {
             const info = window.__dcMaxDebug || {}
             context.fillStyle = '#ff5d5d'
             context.font = '11px monospace'

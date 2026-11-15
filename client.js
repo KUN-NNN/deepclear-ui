@@ -959,8 +959,8 @@ body:not([data-ds-dark-theme]) {
 [data-composer-card].dc-effort-on::before {
   content: '';
   position: absolute;
-  left: 24%;
-  right: 24%;
+  left: 13%;
+  right: 13%;
   bottom: 1px;
   height: 40px;
   z-index: 0;

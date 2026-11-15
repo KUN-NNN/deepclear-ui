@@ -2082,6 +2082,9 @@ body {
             }
           }
 
+          // The input-area clip must go before the word's own clip, or the two
+          // rectangles intersect to nothing and the word never shows.
+          context.restore()
           if (glyphAlpha > 0.01 && glyphArea !== null) {
             const glyph = glyphOf(glyphArea)
             if (glyph !== null) {
@@ -2107,7 +2110,6 @@ body {
               context.restore()
             }
           }
-          context.restore()
           context.globalAlpha = 1
           if (state.active || state.fade >= 0.02) {
             state.frame = requestAnimationFrame(paint)

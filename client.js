@@ -2004,7 +2004,7 @@ body {
         const glyphOf = area => {
           const key = Math.round(area.width) + 'x' + Math.round(area.height)
           if (state.glyph !== null && state.lock === key) return state.glyph
-          const fontSize = Math.max(18, Math.min(area.height * 0.78, area.width * 0.28, 72))
+          const fontSize = Math.max(18, Math.min(area.height * 0.84, area.width * 0.3, 78))
           const probe = document.createElement('canvas')
           probe.width = Math.ceil(area.width)
           probe.height = Math.ceil(area.height)

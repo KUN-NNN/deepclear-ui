@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0
+
+- Switches are part of the dot language now: a row of five lattice dots instead of a track
+  and a knob. Off keeps them dim; on lights them whale blue in sequence with a faint glow on
+  the trailing dot, so every toggle reads as a strip of the same grid as the artwork.
+
 ## 1.5.9
 
 - The sidebar sheet drops its outline and keeps only the elevated shadow.

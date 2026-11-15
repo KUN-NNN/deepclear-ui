@@ -1924,8 +1924,10 @@ body {
         }
         // Stage the band on the send row itself: the tallest button in the card marks it,
         // so the field never drifts into the card's bottom padding.
-        const glyphAreaOf = (card, input) => {
-          if (card === null || input === null) return null
+        // The band is derived from the card and its buttons only: the editable shrinks
+        // when attachments appear, and tying the stage to it blanked the whole effect.
+        const glyphAreaOf = card => {
+          if (card === null) return null
           const cardRect = card.getBoundingClientRect()
           if (cardRect.width < 80 || cardRect.height < 60) return null
           let rowRect = null
@@ -1938,13 +1940,10 @@ body {
             const band = Math.max(30, Math.min(46, cardRect.height * 0.34))
             rowRect = { top: cardRect.bottom - band - 3, height: band }
           }
-          // Sit the band slightly low on the row so the field reads as a floor, not a
-          // label floating above the buttons.
           const top = Math.max(cardRect.top + 4, rowRect.top + 6)
           const bottom = Math.min(cardRect.bottom - 1, rowRect.top + rowRect.height + 12)
           const height = bottom - top
           if (height < 24) return null
-          if (top <= input.top + input.height * 0.5) return null
           return { left: cardRect.left, top, width: cardRect.width, height }
         }
 
@@ -1997,12 +1996,7 @@ body {
           context.setTransform(dpr, 0, 0, dpr, 0, 0)
           context.clearRect(0, 0, width, height)
           const card = cardOf()
-          const inputArea = areaOf(card)
-          if (inputArea === null) {
-            state.live = false
-            return
-          }
-          const area = glyphAreaOf(card, inputArea)
+          const area = glyphAreaOf(card)
           if (area === null) {
             state.live = false
             return
@@ -2110,9 +2104,9 @@ body {
             }
           }
           context.globalAlpha = 1
-          // Keep painting through the entrance, then idle once the picture is static.
-          const entering = now - state.started < 1700
-          if (state.thinking || entering || Math.abs(state.fade - target) > 0.004) {
+          // Keep the loop alive while the effect is on: a stopped loop used to leave a
+          // half-expanded field frozen on screen after a width change.
+          if (state.active || state.fade >= 0.02) {
             state.frame = requestAnimationFrame(paint)
             state.live = true
           } else {
@@ -2134,7 +2128,7 @@ body {
             if (thinking) state.pulseStart = performance.now()
             wake()
           }
-          const syncArea = areaOf(card)
+          const syncArea = glyphAreaOf(card)
           const syncWidth = syncArea === null ? 0 : Math.round(syncArea.width)
           if (syncWidth > 0 && Math.abs(syncWidth - state.width) > 16) {
             state.width = syncWidth

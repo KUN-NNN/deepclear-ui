@@ -964,13 +964,16 @@ body:not([data-ds-dark-theme]) {
   z-index: 0;
   pointer-events: none;
   border-radius: 10px;
-  opacity: 0.85;
+  opacity: 0.42;
   background-image: radial-gradient(
     circle at 1px 1px,
     var(--dc-effort-field) 0.9px,
     transparent 1.15px
   );
   background-size: 4px 4px;
+  /* Fade the field out towards both edges so it reads as depth, not a band. */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
   clip-path: inset(0 50% 0 50%);
   animation: dc-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
@@ -982,7 +985,7 @@ body:not([data-ds-dark-theme]) {
   right: 0;
   bottom: 3px;
   height: 40px;
-  z-index: 0;
+  z-index: 2;
   pointer-events: none;
   text-align: center;
   font: italic 900 30px / 40px "Segoe UI", system-ui, sans-serif;
@@ -1025,8 +1028,8 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
 }
 
 @keyframes dc-effort-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.32; }
+  50% { opacity: 0.6; }
 }
 
 @media (prefers-reduced-motion: reduce) {

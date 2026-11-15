@@ -1159,15 +1159,15 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   outline-offset: 2px;
 }
 
-/* The shipped toggle uses a squircle knob with a clear white margin around it, not a
-   full-height circle: 20px inset 4px, corner radius 7px. */
+/* The shipped toggle is a circle inside the capsule: 22px, 3px margin, so only a
+   thin ring of track shows around it. */
 .dc-switch-knob {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 20px;
-  height: 20px;
-  border-radius: 7px;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
   background: color-mix(in srgb, var(--dsw-alias-label-primary) 82%, transparent);
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }

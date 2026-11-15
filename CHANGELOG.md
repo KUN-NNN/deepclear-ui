@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.5
+
+- The toggle knob is a circle again (22px, 3px margin, radius 50%) — the squircle read as a
+  rounded rectangle and did not match the shipped control.
+
 ## 1.6.4
 
 - Switch knob matches the shipped toggle exactly: a 20px squircle (7px corner radius) inset

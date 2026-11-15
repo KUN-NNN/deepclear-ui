@@ -1601,17 +1601,6 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           return () => { style.remove() }
         }, 'whale-emphasis: accent styles')
 
-        guarded('settings', () => {
-          dcApplySettings()
-          ctx.effect(() => () => {}, 'deepclear-ui: settings')
-          ctx.slots.inject('settings.section', () => ctx.slots.register({
-            name: 'settings.section',
-            id: 'deepclear-ui',
-            order: 25,
-            label: 'DeepClear UI',
-          }, DcSettingsPage))
-        })
-
         // The welcome-page layer is the core of this plugin: register it first so a
         // failure in the experimental chat hooks can never take it down.
         ctx.slots.inject('conversation.hero.frame', () => ctx.slots.register({
@@ -1628,6 +1617,17 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
             console.error('[deepclear-ui] ' + label, error)
           }
         }
+
+        guarded('settings', () => {
+          dcApplySettings()
+          ctx.effect(() => () => {}, 'deepclear-ui: settings')
+          ctx.slots.inject('settings.section', () => ctx.slots.register({
+            name: 'settings.section',
+            id: 'deepclear-ui',
+            order: 25,
+            label: 'DeepClear UI',
+          }, DcSettingsPage))
+        })
 
         guarded('composer-stats', () => {
           ctx.slots.inject('conversation.input.right', () => {

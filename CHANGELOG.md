@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1
+
+- Fix: the settings registration was declared before the internal guard helper, so the client
+  half threw during apply and the whole plugin (including the welcome-page artwork) failed to
+  register. The registration now runs after the guard is defined.
+
 ## 1.4.0
 
 ### Settings

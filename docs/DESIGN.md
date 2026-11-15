@@ -80,6 +80,45 @@ Shared spec:
 
 Never inject nodes into host controls to achieve this.
 
+## Startup splash
+
+The launch sequence is pure DOM + CSS so it can run the moment the client half applies, and
+every animated property is `transform` or `opacity` so the compositor drives it while the app
+is still booting.
+
+- Stage: `#050507` full-screen cover, removed after the animation (`animationend` plus a
+  timeout failsafe).
+- Dot field: a faint 18px radial-dot background fading in.
+- Ring: one 108vmax circle scaling `0.08 -> 1.15` and fading out.
+- Wordmark: `deepseek` in white then `harness` in whale blue, dot-printed through
+  `background-clip: text`, rising 14px into place with a 170ms stagger.
+- Sheen: a 34% wide white gradient translating across the mark once.
+- No canvas and no `requestAnimationFrame` during boot.
+
+## Reasoning effort badge
+
+Never measure the composer in JavaScript. The plugin reads the effort label and stamps
+`data-dc-effort`, `dc-effort-on` and `dc-effort-max` on `[data-composer-card]` once every
+500ms; two pseudo-elements do the rest:
+
+- `::before`: the dot field (`radial-gradient` dots, `left/right: 13%`), unfolded with a
+  `clip-path` animation from `inset(0 50% 0 50%)`, edges softened with a horizontal
+  `mask-image`. While the model thinks, two vertical highlight bars travel from the middle
+  to the edges (animated `background-position`) — the dots themselves keep a constant level.
+- `::after`: the level word via `content: attr(data-dc-effort)` with a dot pattern clipped to
+  the glyphs; white, or whale blue for `MAX`.
+
+Stacking: the card gets `isolation: isolate`, the field sits at `z-index: -1` (above the card
+surface, below its content) and the word at `z-index: 2`. The plugin never sets `position` or
+`z-index` on host children — doing that once broke the composer layout.
+
+## Caret trail
+
+A fixed overlay canvas draws a vertical column of dots at the caret on every typing step,
+filled to the caret height, fading over 650ms and clipped to the composer card. The caret is
+measured from the character next to the insertion point (collapsed ranges have no box) and
+from the focus end while an IME composes.
+
 ## Other rules
 
 ## The thinking row

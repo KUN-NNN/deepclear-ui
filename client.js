@@ -2595,7 +2595,7 @@ body {
         ]),
         h('div', { key: 'footer', className: 'dc-set-footer' }, [
           h('button', { key: 'reset', type: 'button', className: 'dc-set-reset', disabled, onClick: reset }, copy.reset),
-          h('span', { key: 'note', className: 'dc-set-note' }, 'DeepClear UI · 1.9.2'),
+          h('span', { key: 'note', className: 'dc-set-note' }, 'DeepClear UI · 1.9.3'),
         ]),
       ])
     }

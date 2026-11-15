@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.9.3
+
+### Startup
+
+- New startup splash: a dark stage, the dot field surfacing, a ring travelling outward, then
+  `deepseek` (white) and `harness` (whale blue) rising in with a light sheen. Composer-only
+  animation (`transform` / `opacity`), so it stays smooth while the app boots.
+- Every launch opens a fresh blank conversation after the splash.
+
+### Composer
+
+- Reasoning effort badge finished: any level except OFF unfolds the dot field and prints the
+  level name in dots (`MAX` in whale blue, the rest white), with two vertical highlights
+  travelling outward while the model thinks. The badge paints above the composer content
+  without touching host children (stacking context + `z-index: -1` pseudo-elements).
+- Caret trail: a fading column of dots follows the caret, filled to the full caret height,
+  clipped to the card, including IME composition.
+
+### Sidebar
+
+- Hover dot field across every sidebar control, plus the `DeepClear UI` footer button and its
+  settings sheet.
+- Preferences moved to the profile config form, with legacy migration filtered to keys the
+  schema still owns.
+
 ## 1.9.2
 
 - New preference `effortBadge` (Setting: "Effort badge" in the Composer group): turns the

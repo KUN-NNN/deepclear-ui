@@ -1138,33 +1138,50 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   line-height: 1.45;
 }
 
-/* The switch is a capsule printed in dots: the glyph inside spells the state. */
+/* Switch modelled on the shipped toggle: a capsule that inverts when it turns on.
+   Off is a quiet grey track with a light knob on the left; on is the strong label
+   colour as the track with the page colour as the knob, pushed to the right. */
 .dc-switch {
+  position: relative;
   flex: none;
-  display: inline-flex;
+  width: 48px;
+  height: 28px;
   padding: 0;
   border: 0;
-  border-radius: 15px;
-  background: transparent;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--dsw-alias-label-tertiary) 34%, transparent);
   cursor: pointer;
-  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.dc-switch:hover {
-  transform: scale(1.04);
-}
-
-.dc-switch:active {
-  transform: scale(0.98);
+  transition: background 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dc-switch:focus-visible {
   outline: 2px solid var(--dsw-focus-ring-color, #7aaaff);
-  outline-offset: 3px;
+  outline-offset: 2px;
+}
+
+.dc-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dsw-alias-label-primary) 82%, transparent);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dc-switch[data-on] {
+  background: var(--dsw-alias-label-primary);
+}
+
+.dc-switch[data-on] .dc-switch-knob {
+  transform: translateX(20px);
+  background: var(--dsw-alias-bg-base, #17171a);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dc-switch {
+  .dc-switch,
+  .dc-switch-knob {
     transition: none;
   }
 }
@@ -1696,85 +1713,6 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
       },
     }
 
-    /** Dot glyphs for the switch: the capsule is printed in dots that spell on / off. */
-    const dcSwitchGlyphCache = new Map()
-    function dcSwitchGlyph(word) {
-      if (dcSwitchGlyphCache.has(word)) return dcSwitchGlyphCache.get(word)
-      const width = 64
-      const height = 30
-      const pitch = 3
-      const probe = document.createElement('canvas')
-      probe.width = width
-      probe.height = height
-      const probeContext = probe.getContext('2d')
-      if (probeContext === null) {
-        const empty = { dots: [], width: width, height: height, pitch: pitch }
-        dcSwitchGlyphCache.set(word, empty)
-        return empty
-      }
-      probeContext.clearRect(0, 0, width, height)
-      probeContext.fillStyle = '#fff'
-      probeContext.textAlign = 'center'
-      probeContext.textBaseline = 'middle'
-      probeContext.font = '600 11px "Segoe UI", system-ui, sans-serif'
-      if ('letterSpacing' in probeContext) probeContext.letterSpacing = '0.5px'
-      probeContext.fillText(word, width / 2, height / 2 + 0.5)
-      const pixels = probeContext.getImageData(0, 0, width, height).data
-      const glyph = { dots: [], width: width, height: height, pitch: pitch }
-      for (let y = pitch / 2; y < height; y += pitch) {
-        for (let x = pitch / 2; x < width; x += pitch) {
-          const index = (Math.floor(y) * width + Math.floor(x)) * 4 + 3
-          glyph.dots.push({ x: x, y: y, inside: pixels[index] > 96 })
-        }
-      }
-      dcSwitchGlyphCache.set(word, glyph)
-      return glyph
-    }
-
-    /** Switch drawn as a dotted capsule whose dots spell the state. */
-    function DcSwitchSvg({ value }) {
-      const glyph = dcSwitchGlyph(value ? 'on' : 'off')
-      const lit = value === true
-      const children = [
-        h('rect', {
-          key: 'frame',
-          x: 0.6,
-          y: 0.6,
-          width: glyph.width - 1.2,
-          height: glyph.height - 1.2,
-          rx: (glyph.height - 1.2) / 2,
-          fill: 'none',
-          strokeWidth: 1,
-          style: { stroke: 'var(--dsw-alias-border-l2)' },
-        }),
-      ]
-      // On: the field is blue and the unlit dots spell "on". Off: the field is dim and
-      // the lit dots spell "off" — the same print, inverted.
-      for (let index = 0; index < glyph.dots.length; index += 1) {
-        const dot = glyph.dots[index]
-        const shouldLight = lit ? !dot.inside : dot.inside
-        children.push(h('circle', {
-          key: index,
-          cx: dot.x,
-          cy: dot.y,
-          r: lit ? (shouldLight ? 0.95 : 0.7) : (shouldLight ? 0.95 : 0.7),
-          style: {
-            fill: shouldLight
-              ? (lit ? '#7aaaff' : 'var(--dsw-alias-label-tertiary)')
-              : 'var(--dsw-alias-label-tertiary)',
-            opacity: shouldLight ? 1 : (lit ? 0.3 : 0.45),
-          },
-        }))
-      }
-      return h('svg', {
-        width: glyph.width,
-        height: glyph.height,
-        viewBox: '0 0 ' + glyph.width + ' ' + glyph.height,
-        'aria-hidden': 'true',
-        style: { display: 'block' },
-      }, children)
-    }
-
     /** One settings row: a label on the left and a switch on the right. */
     function DcSwitch({ label, description, value, onChange }) {
       return h('div', { className: 'dc-set-row' }, [
@@ -1793,7 +1731,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           className: 'dc-switch',
           'data-on': value ? 'true' : undefined,
           onClick: () => onChange(!value),
-        }, h(DcSwitchSvg, { key: 'glyph', value: value === true })),
+        }, h('span', { className: 'dc-switch-knob', 'aria-hidden': 'true' })),
       ])
     }
 

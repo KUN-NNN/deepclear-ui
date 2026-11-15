@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.3
+
+- Switches follow the shipped toggle: a 48x28 capsule that inverts when switched on — grey
+  track with a light knob on the left when off, the strong label colour as the track with a
+  page-coloured knob pushed right when on. The dot-printed variants are gone.
+
 ## 1.6.2
 
 - Switches are printed dot capsules that spell their own state: the glyph is sampled into

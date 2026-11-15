@@ -1727,24 +1727,44 @@ body {
           if (active === null || typeof active.closest !== 'function') return null
           const card = active.closest('[data-composer-card]')
           if (card === null) return null
-          const editable = active.closest('[contenteditable="true"], [role="textbox"], textarea')
+          const editable = active.isContentEditable
+            ? active
+            : active.closest('[contenteditable], [role="textbox"], textarea')
           if (editable === null || !card.contains(editable)) return null
           const selection = window.getSelection()
           if (selection === null || selection.rangeCount === 0 || !selection.isCollapsed) return null
           const node = selection.anchorNode
           if (node === null) return null
           if (node !== active && !active.contains(node)) return null
+          // A collapsed range has no box in Chromium, so measure the character next to
+          // the caret and take its edge instead.
           const range = document.createRange()
+          let rect = null
           try {
             range.setStart(node, selection.anchorOffset)
             range.collapse(true)
+            const collapsed = range.getBoundingClientRect()
+            if (collapsed.height > 0 && (collapsed.left > 0 || collapsed.top > 0)) {
+              rect = { left: collapsed.left, top: collapsed.top, height: collapsed.height }
+            } else if (node.nodeType === 3) {
+              const text = node.textContent || ''
+              if (selection.anchorOffset > 0) {
+                range.setStart(node, selection.anchorOffset - 1)
+                range.setEnd(node, selection.anchorOffset)
+                const box = range.getBoundingClientRect()
+                if (box.height > 0) rect = { left: box.right, top: box.top, height: box.height }
+              } else if (text.length > 0) {
+                range.setStart(node, 0)
+                range.setEnd(node, 1)
+                const box = range.getBoundingClientRect()
+                if (box.height > 0) rect = { left: box.left, top: box.top, height: box.height }
+              }
+            }
           } catch (error) {
             return null
           }
-          const rects = range.getClientRects()
-          const rect = rects.length > 0 ? rects[0] : range.getBoundingClientRect()
-          if (rect.width === 0 && rect.height === 0) return null
-          return { x: rect.left, y: rect.top, height: rect.height || 18, card }
+          if (rect === null || rect.height === 0) return null
+          return { x: rect.left, y: rect.top, height: rect.height, card }
         }
 
         const push = (from, to, now) => {
@@ -1838,6 +1858,12 @@ body {
           frame = requestAnimationFrame(paint)
         }
 
+        window.__dcCaretProbe = () => {
+          const caret = caretOf()
+          return caret === null
+            ? { ok: false, active: document.activeElement ? document.activeElement.tagName : null }
+            : { ok: true, x: Math.round(caret.x), y: Math.round(caret.y), height: Math.round(caret.height) }
+        }
         const onActivity = () => sample()
         document.addEventListener('selectionchange', onActivity)
         document.addEventListener('input', onActivity, true)

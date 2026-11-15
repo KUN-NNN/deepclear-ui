@@ -965,12 +965,22 @@ body:not([data-ds-dark-theme]) {
   pointer-events: none;
   border-radius: 10px;
   opacity: 0.42;
+  /* Layer one is the thinking highlight: a soft light that grows outwards from the
+     middle. Layer two is the dot print itself. */
   background-image: radial-gradient(
-    circle at 1px 1px,
-    var(--dc-effort-field) 0.9px,
-    transparent 1.15px
-  );
-  background-size: 4px 4px;
+      ellipse 50% 70% at 50% 50%,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.18) 46%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle at 1px 1px,
+      var(--dc-effort-field) 0.9px,
+      transparent 1.15px
+    );
+  background-size: 0% 100%, 4px 4px;
+  background-repeat: no-repeat, repeat;
+  background-position: 50% 50%, 0 0;
   /* Fade the field out towards both edges so it reads as depth, not a band. */
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
@@ -1014,7 +1024,7 @@ body:not([data-ds-dark-theme]) {
 body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   animation:
     dc-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
-    dc-effort-pulse 1.6s 900ms ease-in-out infinite;
+    dc-effort-spread 2.2s 900ms ease-out infinite;
 }
 
 @keyframes dc-effort-open {
@@ -1027,9 +1037,18 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   to { opacity: 1; }
 }
 
-@keyframes dc-effort-pulse {
-  0%, 100% { opacity: 0.32; }
-  50% { opacity: 0.6; }
+@keyframes dc-effort-spread {
+  0% {
+    background-size: 6% 100%, 4px 4px;
+    opacity: 0.12;
+  }
+  22% {
+    opacity: 0.5;
+  }
+  100% {
+    background-size: 240% 100%, 4px 4px;
+    opacity: 0.1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

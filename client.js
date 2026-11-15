@@ -2039,7 +2039,7 @@ body {
           }
           const glyphIn = motion.matches ? 1 : Math.min(1, Math.max(0, (elapsed - 760) / 680))
           const glyphAlpha = Math.pow(glyphIn, 2) * state.fade
-          const fieldAlpha = 0.3 * state.fade
+          const fieldAlpha = 0.44 * state.fade
 
           context.save()
           context.beginPath()
@@ -2069,7 +2069,9 @@ body {
               for (let x = startX; x < area.left + area.width; x += pitch) {
                 const spread = Math.abs(x - centerX)
                 if (spread > reach) continue
-                const base = fieldAlpha * (1 - spread / half)
+                // Flat over most of the width and only softening at the very edges, so the
+                // field visibly fills the whole input instead of fading out by mid-card.
+                const base = fieldAlpha * (0.62 + 0.38 * (1 - spread / half))
                 let highlight = 0
                 if (state.thinking) {
                   const distance = Math.abs(spread - wave)
@@ -2086,7 +2088,7 @@ body {
                   bucket = []
                   buckets.set(level, bucket)
                 }
-                bucket.push(x, y, 0.85 + highlight * 0.55)
+                bucket.push(x, y, 0.95 + highlight * 0.5)
               }
             }
             context.fillStyle = dark ? '#ffffff' : '#3f444c'

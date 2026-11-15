@@ -2170,7 +2170,7 @@ body {
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
     const DC_DEFAULT_SETTINGS = Object.freeze(Object.fromEntries([
       'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
-      'composerField', 'glass', 'bold', 'focusRing', 'diff', 'stats',
+      'composerField', 'glass', 'bold', 'focusRing', 'diff',
       'reading', 'code',
     ].map(key => [key, true])))
     const DC_OFF_CLASS = Object.freeze(Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)
@@ -2387,7 +2387,6 @@ body {
           thinkingLabel: ['English status label', 'Replace the status row with “Deep thinking for 12s. . .”'],
           composerField: ['Dot floor', 'The dot band under the input on session pages'],
           glass: ['Frosted glass', 'Translucent input card on session pages'],
-          stats: ['Usage readout', 'Context and token usage in the button row'],
           bold: ['Whale-blue bold', 'Bold runs in chat prose take the accent colour'],
           focusRing: ['Focus ring', 'The soft ring while the composer has focus'],
           diff: ['Re-inked diffs', 'Added and removed lines in the blue family'],
@@ -2524,7 +2523,7 @@ body {
           item('thinkingSphere'), item('thinkingLabel'),
         ]),
         group(copy.groups.composer, [
-          item('composerField'), item('glass'), item('stats'),
+          item('composerField'), item('glass'),
         ]),
         group(copy.groups.accents, [
           item('bold'), item('focusRing'), item('diff'),
@@ -2821,7 +2820,6 @@ body {
           () => ctx.slots.register({ name, ...options }, dcSafe(Component)))
         add('conversation.hero.frame', { id: 'dot-whale', order: 20 }, HeroFrame)
         add('sidebar.footer.action', { id: 'deepclear-ui', order: 5, label: () => 'DeepClear UI' }, DcSidebarAction)
-        add('conversation.input.right', { id: 'dc-stats', order: 0 }, DcStats)
         add('shell.overlay', { id: 'dc-ambient', order: 5 }, DcOverlay)
         add('shell.overlay', { id: 'dc-sidebar-dots', order: 6 }, DcSidebarDots)
         add('shell.overlay', { id: 'dc-caret-trail', order: 4 }, DcCaretTrail)

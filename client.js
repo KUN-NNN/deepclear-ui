@@ -1697,6 +1697,168 @@ body {
       return h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
     }
 
+    /**
+     * Dot trail behind the composer caret.
+     *
+     * The caret itself is host-owned, so we only read its position (collapsed selection
+     * range inside the active composer) and print a fading line of dots behind it on our
+     * overlay canvas, clipped to the composer card. Dots never move once printed; they only
+     * fade.
+     */
+    function DcCaretTrail() {
+      const canvasRef = React.useRef(null)
+      React.useEffect(() => {
+        const canvas = canvasRef.current
+        if (canvas === null) return
+        const context = canvas.getContext('2d')
+        if (context === null) return
+        const motion = matchMedia('(prefers-reduced-motion: reduce)')
+        if (motion.matches) return undefined
+        const trail = []
+        const LIFE = 520
+        const STEP = 3
+        let stopped = false
+        let frame = 0
+        let last = null
+        let dpr = Math.min(2, devicePixelRatio || 1)
+
+        const caretOf = () => {
+          const active = document.activeElement
+          if (active === null || typeof active.closest !== 'function') return null
+          const card = active.closest('[data-composer-card]')
+          if (card === null) return null
+          const editable = active.closest('[contenteditable="true"], [role="textbox"], textarea')
+          if (editable === null || !card.contains(editable)) return null
+          const selection = window.getSelection()
+          if (selection === null || selection.rangeCount === 0 || !selection.isCollapsed) return null
+          const node = selection.anchorNode
+          if (node === null) return null
+          if (node !== active && !active.contains(node)) return null
+          const range = document.createRange()
+          try {
+            range.setStart(node, selection.anchorOffset)
+            range.collapse(true)
+          } catch (error) {
+            return null
+          }
+          const rects = range.getClientRects()
+          const rect = rects.length > 0 ? rects[0] : range.getBoundingClientRect()
+          if (rect.width === 0 && rect.height === 0) return null
+          return { x: rect.left, y: rect.top, height: rect.height || 18, card }
+        }
+
+        const push = (from, to, now) => {
+          const deviceX = to.x - from.x
+          const deviceY = to.y - from.y
+          const distance = Math.sqrt(deviceX * deviceX + deviceY * deviceY)
+          if (distance < 1.5) return
+          // A line wrap or a jump to another spot is not a trail; only same-line motion is.
+          if (distance > 90 || Math.abs(deviceY) > 6) return
+          const midFrom = from.y + from.height / 2
+          const midTo = to.y + to.height / 2
+          const steps = Math.max(1, Math.min(40, Math.round(distance / STEP)))
+          for (let index = 1; index <= steps; index += 1) {
+            const t = index / steps
+            trail.push({
+              x: from.x + deviceX * t,
+              y: midFrom + (midTo - midFrom) * t,
+              height: to.height,
+              born: now - (steps - index) * 6,
+            })
+          }
+          while (trail.length > 220) trail.shift()
+        }
+
+        const sample = () => {
+          const caret = caretOf()
+          if (caret === null) {
+            last = null
+            return
+          }
+          const now = performance.now()
+          if (last !== null) {
+            const sameCard = last.card === caret.card
+            if (sameCard) push({ x: last.x, y: last.y, height: last.height }, caret, now)
+          }
+          last = { x: caret.x, y: caret.y, height: caret.height, card: caret.card }
+          wake()
+        }
+
+        const paint = () => {
+          frame = 0
+          if (stopped) return
+          const width = innerWidth
+          const height = innerHeight
+          if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+            canvas.width = Math.round(width * dpr)
+            canvas.height = Math.round(height * dpr)
+          }
+          context.setTransform(dpr, 0, 0, dpr, 0, 0)
+          context.clearRect(0, 0, width, height)
+          const now = performance.now()
+          while (trail.length > 0 && now - trail[0].born > LIFE) trail.shift()
+          if (trail.length === 0) return
+          const card = trail[trail.length - 1].card
+          let clip = null
+          let radius = 12
+          if (card !== null && card.isConnected) {
+            clip = card.getBoundingClientRect()
+            const style = getComputedStyle(card)
+            radius = parseFloat(style.borderTopLeftRadius) || 12
+          }
+          const accent = (getComputedStyle(document.body).getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
+          context.save()
+          if (clip !== null) {
+            context.beginPath()
+            if (typeof context.roundRect === 'function') {
+              context.roundRect(clip.left, clip.top, clip.width, clip.height, radius)
+            } else {
+              context.rect(clip.left, clip.top, clip.width, clip.height)
+            }
+            context.clip()
+          }
+          context.fillStyle = accent
+          for (const point of trail) {
+            const age = (now - point.born) / LIFE
+            if (age >= 1) continue
+            const alpha = Math.pow(1 - age, 1.5) * 0.55
+            if (alpha < 0.02) continue
+            context.globalAlpha = alpha
+            context.beginPath()
+            context.arc(point.x, point.y, 0.9, 0, Math.PI * 2)
+            context.fill()
+          }
+          context.restore()
+          context.globalAlpha = 1
+          frame = requestAnimationFrame(paint)
+        }
+
+        const wake = () => {
+          if (stopped || frame !== 0) return
+          frame = requestAnimationFrame(paint)
+        }
+
+        const onActivity = () => sample()
+        document.addEventListener('selectionchange', onActivity)
+        document.addEventListener('input', onActivity, true)
+        document.addEventListener('keyup', onActivity, true)
+        document.addEventListener('pointerup', onActivity, true)
+        window.addEventListener('resize', wake)
+        return () => {
+          stopped = true
+          document.removeEventListener('selectionchange', onActivity)
+          document.removeEventListener('input', onActivity, true)
+          document.removeEventListener('keyup', onActivity, true)
+          document.removeEventListener('pointerup', onActivity, true)
+          window.removeEventListener('resize', wake)
+          if (frame !== 0) cancelAnimationFrame(frame)
+          frame = 0
+          trail.length = 0
+        }
+      }, [])
+      return h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+    }
+
     /* deepclear runtime:start */
     // Profile settings and token layers; embedded into client.js by build-runtime.mjs.
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
@@ -2356,6 +2518,7 @@ body {
         add('conversation.input.right', { id: 'dc-stats', order: 0 }, DcStats)
         add('shell.overlay', { id: 'dc-ambient', order: 5 }, DcOverlay)
         add('shell.overlay', { id: 'dc-sidebar-dots', order: 6 }, DcSidebarDots)
+        add('shell.overlay', { id: 'dc-caret-trail', order: 4 }, DcCaretTrail)
         // Package name, distinct from the Host entry id even though both currently match.
         add('plugins.bundle.config', { key: 'deepclear-ui' }, DcSettingsPage)
       },

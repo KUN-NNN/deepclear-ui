@@ -959,7 +959,7 @@ body:not([data-ds-dark-theme]) {
   position: absolute;
   left: 10px;
   right: 10px;
-  bottom: 4px;
+  bottom: 1px;
   height: 40px;
   z-index: 0;
   pointer-events: none;

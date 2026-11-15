@@ -959,8 +959,8 @@ body:not([data-ds-dark-theme]) {
 [data-composer-card].dc-effort-on::before {
   content: '';
   position: absolute;
-  left: 10px;
-  right: 10px;
+  left: 24%;
+  right: 24%;
   bottom: 1px;
   height: 40px;
   z-index: 0;
@@ -986,7 +986,7 @@ body:not([data-ds-dark-theme]) {
       var(--dc-effort-field) 0.9px,
       transparent 1.15px
     );
-  background-size: 0% 100%, 0% 100%, 4px 4px;
+  background-size: 12% 100%, 12% 100%, 4px 4px;
   background-repeat: no-repeat, no-repeat, repeat;
   background-position: 50% 50%, 50% 50%, 0 0;
   /* Fade the field out towards both edges so it reads as depth, not a band. */
@@ -1047,17 +1047,10 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
 
 @keyframes dc-effort-spread {
   0% {
-    background-size: 10% 100%, 10% 100%, 4px 4px;
     background-position: 50% 50%, 50% 50%, 0 0;
-    opacity: 0.1;
-  }
-  18% {
-    opacity: 0.62;
   }
   100% {
-    background-size: 10% 100%, 10% 100%, 4px 4px;
     background-position: 0% 50%, 100% 50%, 0 0;
-    opacity: 0.1;
   }
 }
 

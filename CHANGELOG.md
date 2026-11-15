@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.2
+
+- The composer focus ring is light grey instead of whale blue: a neutral highlight for a text
+  surface, with the accent kept for content. Dark theme uses `rgb(224, 226, 232)`, light
+  theme `rgb(124, 128, 136)`.
+
 ## 1.8.1
 
 - Remove the instrument interface experiment, its decorations, slots and geometry overrides.

@@ -1564,16 +1564,6 @@ body {
           }
           context.restore()
           context.globalAlpha = 1
-          if (window.__dcDebugPaint !== false) {
-            const info = window.__dcMaxDebug || {}
-            context.fillStyle = '#ff5d5d'
-            context.font = '11px monospace'
-            context.textBaseline = 'top'
-            context.font = 'bold 14px monospace'
-            context.fillText(
-              'B5 W' + info.width + ' R' + info.reach + ' E' + info.elapsed + ' F' + info.fade + ' L' + Math.round(area.left),
-              Math.max(4, area.left + 6), area.top + 2)
-          }
           const moving = state.dirty
           state.dirty = false
           if (motion.matches) {
@@ -2128,6 +2118,15 @@ body {
             }
           }
           context.globalAlpha = 1
+          if (window.__dcDebugPaint !== false) {
+            const info = window.__dcMaxDebug || {}
+            context.fillStyle = '#ff5d5d'
+            context.textBaseline = 'top'
+            context.font = 'bold 14px monospace'
+            context.fillText(
+              'B6 W' + info.width + ' R' + info.reach + ' E' + info.elapsed + ' F' + info.fade + ' L' + Math.round(area.left),
+              Math.max(4, area.left + 6), area.top + 2)
+          }
           // Keep the loop alive while the effect is on: a stopped loop used to leave a
           // half-expanded field frozen on screen after a width change.
           if (state.active || state.fade >= 0.02) {

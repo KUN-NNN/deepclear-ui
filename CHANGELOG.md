@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.1
+
+- Added `docs/DESIGN.md`: the toggle is now specified as a binding rule (SVG geometry, 42x24
+  capsule, 18px circle knob, stroke only when on) together with the other conventions the
+  plugin follows.
+
 ## 1.7.0
 
 - Settings sheet stripped back: the lead paragraph is gone, rows no longer draw separators,

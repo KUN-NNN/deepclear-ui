@@ -1992,8 +1992,8 @@ body {
           }
           // Sit the band slightly low on the row so the field reads as a floor, not a
           // label floating above the buttons.
-          const top = Math.max(cardRect.top + 4, rowRect.top + 1)
-          const bottom = Math.min(cardRect.bottom - 2, rowRect.top + rowRect.height + 7)
+          const top = Math.max(cardRect.top + 4, rowRect.top + 4)
+          const bottom = Math.min(cardRect.bottom - 2, rowRect.top + rowRect.height + 10)
           const height = bottom - top
           if (height < 24) return null
           if (top <= input.top + input.height * 0.5) return null
@@ -2017,7 +2017,7 @@ body {
           probeContext.font = 'italic 900 ' + Math.round(fontSize) + 'px "Segoe UI", system-ui, sans-serif'
           if ('letterSpacing' in probeContext) probeContext.letterSpacing = Math.round(fontSize * 0.06) + 'px'
           // The word sits a touch below the band's midline; the field itself stays put.
-          const drop = Math.round(probe.height * 0.16)
+          const drop = Math.round(probe.height * 0.1)
           probeContext.fillText('MAX', probe.width / 2, probe.height / 2 + drop)
           const pixels = probeContext.getImageData(0, 0, probe.width, probe.height).data
           const dots = []

@@ -1564,6 +1564,15 @@ body {
           }
           context.restore()
           context.globalAlpha = 1
+          if (window.__dcDebugPaint === true) {
+            const info = window.__dcMaxDebug || {}
+            context.fillStyle = '#ff5d5d'
+            context.font = '11px monospace'
+            context.textBaseline = 'top'
+            context.fillText(
+              'W' + info.width + ' R' + info.reach + ' E' + info.elapsed + ' F' + info.fade + ' L' + Math.round(area.left),
+              Math.max(4, area.left + 6), area.top + 1)
+          }
           const moving = state.dirty
           state.dirty = false
           if (motion.matches) {

@@ -1107,6 +1107,8 @@ body[data-ds-dark-theme] {
 }
 
 .dc-foot-button {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1123,6 +1125,20 @@ body[data-ds-dark-theme] {
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
+}
+
+.dc-foot-dots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.dc-foot-button > :not(.dc-foot-dots) {
+  position: relative;
+  z-index: 1;
 }
 
 .dc-foot-button:hover {
@@ -1970,9 +1986,133 @@ body {
       })))
     }
 
-    /** Sidebar footer button that opens the sheet. */
+    /**
+     * Sidebar footer button that opens the sheet.
+     *
+     * The button carries its own dot field: completely unlit at rest, it surfaces only in a
+     * soft pool around the pointer, clipped to the button, and fades away when the pointer
+     * leaves. Dots never move; only their brightness changes.
+     */
     function DcSidebarAction({ wide }) {
       const open = useDcSheet()
+      const canvasRef = React.useRef(null)
+      React.useEffect(() => {
+        const canvas = canvasRef.current
+        if (canvas === null) return
+        const context = canvas.getContext('2d')
+        if (context === null) return
+        const button = canvas.parentElement
+        if (button === null) return
+        const motion = matchMedia('(prefers-reduced-motion: reduce)')
+        const state = { x: -999, y: -999, inside: false, alpha: 0, frame: 0, live: false, dirty: false }
+        let stopped = false
+        let dpr = Math.min(2, devicePixelRatio || 1)
+
+        const measure = () => {
+          const rect = canvas.getBoundingClientRect()
+          dpr = Math.min(2, devicePixelRatio || 1)
+          const width = Math.max(1, Math.round(rect.width * dpr))
+          const height = Math.max(1, Math.round(rect.height * dpr))
+          if (canvas.width !== width || canvas.height !== height) {
+            canvas.width = width
+            canvas.height = height
+          }
+        }
+
+        const paint = () => {
+          state.frame = 0
+          if (stopped) return
+          const rect = canvas.getBoundingClientRect()
+          const width = rect.width
+          const height = rect.height
+          const target = state.inside ? 1 : 0
+          state.alpha = motion.matches ? target : state.alpha + (target - state.alpha) * 0.22
+          context.setTransform(dpr, 0, 0, dpr, 0, 0)
+          context.clearRect(0, 0, width, height)
+          if (!state.inside && state.alpha < 0.02) {
+            state.alpha = 0
+            state.live = false
+            return
+          }
+          const radius = 46
+          const accent = (getComputedStyle(button).getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
+          context.fillStyle = accent
+          for (let y = 3; y < height; y += 4) {
+            for (let x = 3; x < width; x += 4) {
+              const dx = x - state.x
+              const dy = y - state.y
+              const distance = Math.sqrt(dx * dx + dy * dy)
+              if (distance > radius) continue
+              const alpha = Math.pow(1 - distance / radius, 1.6) * state.alpha
+              if (alpha < 0.02) continue
+              context.globalAlpha = Math.min(1, alpha)
+              context.beginPath()
+              context.arc(x, y, 0.85, 0, Math.PI * 2)
+              context.fill()
+            }
+          }
+          context.globalAlpha = 1
+          const moving = state.dirty
+          state.dirty = false
+          if (motion.matches) {
+            if (!state.inside) {
+              context.clearRect(0, 0, width, height)
+              state.alpha = 0
+            }
+            state.live = false
+            return
+          }
+          // Idle inside the button: stop the loop until the pointer moves again.
+          if (state.inside && state.alpha >= 0.98 && !moving) {
+            state.live = false
+            return
+          }
+          if (state.inside || state.alpha >= 0.02) {
+            state.frame = requestAnimationFrame(paint)
+          } else {
+            state.live = false
+          }
+        }
+
+        const wake = () => {
+          if (stopped || state.live) return
+          state.live = true
+          if (state.frame === 0) state.frame = requestAnimationFrame(paint)
+        }
+
+        const track = event => {
+          const rect = canvas.getBoundingClientRect()
+          state.x = event.clientX - rect.left
+          state.y = event.clientY - rect.top
+          state.inside = true
+          state.dirty = true
+          wake()
+        }
+        const leave = () => {
+          state.inside = false
+          wake()
+        }
+
+        const resizeObserver = new ResizeObserver(() => {
+          measure()
+          if (state.inside || state.alpha > 0.02) wake()
+        })
+        resizeObserver.observe(canvas)
+        button.addEventListener('pointerenter', track)
+        button.addEventListener('pointermove', track)
+        button.addEventListener('pointerleave', leave)
+        measure()
+        return () => {
+          stopped = true
+          resizeObserver.disconnect()
+          button.removeEventListener('pointerenter', track)
+          button.removeEventListener('pointermove', track)
+          button.removeEventListener('pointerleave', leave)
+          if (state.frame !== 0) cancelAnimationFrame(state.frame)
+          state.frame = 0
+          state.live = false
+        }
+      }, [])
       return h('div', { className: 'dc-foot' }, [
         h('button', {
           key: 'button',
@@ -1982,6 +2122,7 @@ body {
           'aria-label': dcUsesChinese() ? DC_COPY.zh.button : DC_COPY.en.button,
           onClick: () => dcSetSheetOpen(!dcSheetOpen),
         }, [
+          h('canvas', { key: 'dots', ref: canvasRef, className: 'dc-foot-dots', 'aria-hidden': 'true' }),
           h(DcSettingsIcon, { key: 'icon', size: 16, active: open }),
           wide ? h('span', { key: 'label', className: 'dc-foot-label' }, 'DeepClear UI') : null,
         ]),

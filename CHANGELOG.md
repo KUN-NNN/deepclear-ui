@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.2
+
+- New preference `effortBadge` (Setting: "Effort badge" in the Composer group): turns the
+  dot-printed reasoning level and its unfolding field on or off. The host Config schema and
+  the runtime defaults both carry the key.
+
 ## 1.9.1
 
 - The reasoning effort badge is rebuilt in pure CSS: the plugin only stamps

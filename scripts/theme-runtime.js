@@ -2,7 +2,7 @@
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
     const DC_DEFAULT_SETTINGS = Object.freeze(Object.fromEntries([
       'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
-      'glass', 'bold', 'focusRing', 'diff',
+      'glass', 'effortBadge', 'bold', 'focusRing', 'diff',
       'reading', 'code',
     ].map(key => [key, true])))
     const DC_OFF_CLASS = Object.freeze(Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)

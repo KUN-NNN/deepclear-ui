@@ -2027,7 +2027,7 @@ body {
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
     const DC_DEFAULT_SETTINGS = Object.freeze(Object.fromEntries([
       'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
-      'glass', 'bold', 'focusRing', 'diff',
+      'glass', 'effortBadge', 'bold', 'focusRing', 'diff',
       'reading', 'code',
     ].map(key => [key, true])))
     const DC_OFF_CLASS = Object.freeze(Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)
@@ -2256,12 +2256,14 @@ body {
     Object.assign(DC_COPY.zh.items, {
       reading: ['阅读排版', '舒展段落、标题与引用，保留你的字号'],
       code: ['代码配色', '低饱和语法颜色，保持代码层次'],
+      effortBadge: ['推理等级动画', '输入框里用点阵显示当前推理等级'],
       thinkingLabel: ['英文思考文案', '把状态行换成 “Deep thinking for 12s. . .”'],
       diff: ['差异配色', '新增用蓝色，删除用暖色，保留语法高亮'],
     })
     Object.assign(DC_COPY.en.items, {
       reading: ['Reading layout', 'Clear paragraphs, headings and quotes at your chosen font size'],
       code: ['Code palette', 'Muted, distinct syntax colours'],
+      effortBadge: ['Effort badge', 'Print the reasoning level in dots inside the composer'],
       thinkingLabel: ['English status label', 'Replace the status row with “Deep thinking for 12s. . .”'],
       diff: ['Diff palette', 'Blue additions and warm deletions, with syntax highlighting intact'],
     })
@@ -2378,14 +2380,14 @@ body {
           item('thinkingSphere'), item('thinkingLabel'),
         ]),
         group(copy.groups.composer, [
-          item('glass'),
+          item('glass'), item('effortBadge'),
         ]),
         group(copy.groups.accents, [
           item('bold'), item('focusRing'), item('diff'),
         ]),
         h('div', { key: 'footer', className: 'dc-set-footer' }, [
           h('button', { key: 'reset', type: 'button', className: 'dc-set-reset', disabled, onClick: reset }, copy.reset),
-          h('span', { key: 'note', className: 'dc-set-note' }, 'DeepClear UI · 1.8.1'),
+          h('span', { key: 'note', className: 'dc-set-note' }, 'DeepClear UI · 1.9.2'),
         ]),
       ])
     }
@@ -2672,7 +2674,8 @@ body {
         })
         ctx.effect(() => {
           const sync = () => {
-            const label = dcEffortLabel()
+            const enabled = dcGetSnapshot().values.effortBadge !== false
+            const label = enabled ? dcEffortLabel() : null
             dcPaintEffort(label !== null && !DC_EFFORT_OFF.test(label) ? label : null)
           }
           sync()

@@ -949,11 +949,9 @@ body:not([data-ds-dark-theme]) {
 
 [data-composer-card] {
   position: relative;
-}
-
-[data-composer-card] > * {
-  position: relative;
-  z-index: 1;
+  /* Own stacking context so the field can paint above the card surface but below its
+     content without touching the host's children. */
+  isolation: isolate;
 }
 
 [data-composer-card].dc-effort-on::before {
@@ -963,7 +961,7 @@ body:not([data-ds-dark-theme]) {
   right: 13%;
   bottom: 1px;
   height: 40px;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   border-radius: 10px;
   opacity: 0.42;

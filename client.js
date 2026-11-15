@@ -1138,64 +1138,77 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   line-height: 1.45;
 }
 
+/* A capsule printed in dots: the track is a dense lattice fill, the knob is a solid
+   pill sliding over it. Off keeps the dots dim and neutral, on floods them whale blue. */
 .dc-switch {
   position: relative;
   flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 7px 9px;
+  width: 48px;
+  height: 28px;
+  padding: 0;
   border: 0;
-  border-radius: 10px;
-  background: transparent;
+  border-radius: 14px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--dsw-alias-label-tertiary) 20%, transparent);
   cursor: pointer;
-  transition: background 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: background 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.dc-switch:hover {
-  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.1));
+.dc-switch::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    currentColor 0.9px,
+    transparent 1.05px
+  );
+  background-size: 4px 4px;
+  color: color-mix(in srgb, var(--dsw-alias-label-tertiary) 60%, transparent);
+  opacity: 0.5;
+  transition: color 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dc-switch:hover::before {
+  opacity: 0.78;
 }
 
 .dc-switch:focus-visible {
   outline: 2px solid var(--dsw-focus-ring-color, #7aaaff);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
-/* The switch is a row of lattice dots: off they stay dim, on they light up in
-   sequence, so the toggle reads as a line of the same dot grid as the artwork. */
-.dc-switch-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.dc-switch[data-on] {
+  background: color-mix(in srgb, #7aaaff 16%, transparent);
 }
 
-.dc-switch-dots i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--dsw-alias-label-tertiary) 32%, transparent);
-  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+.dc-switch[data-on]::before {
+  color: #7aaaff;
+  opacity: 1;
 }
 
-.dc-switch-dots i:nth-child(1) { transition-delay: 0ms; }
-.dc-switch-dots i:nth-child(2) { transition-delay: 24ms; }
-.dc-switch-dots i:nth-child(3) { transition-delay: 48ms; }
-.dc-switch-dots i:nth-child(4) { transition-delay: 72ms; }
-.dc-switch-dots i:nth-child(5) { transition-delay: 96ms; }
-
-.dc-switch[data-on] .dc-switch-dots i {
-  background: #7aaaff;
-  box-shadow: 0 0 4px rgba(122, 170, 255, 0.55);
-  transform: scale(1.12);
+.dc-switch-knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.32);
+  z-index: 1;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.dc-switch[data-on] .dc-switch-dots i:nth-child(5) {
-  box-shadow: 0 0 7px rgba(122, 170, 255, 0.8);
+.dc-switch[data-on] .dc-switch-knob {
+  transform: translateX(20px);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dc-switch,
-  .dc-switch-dots i {
+  .dc-switch::before,
+  .dc-switch-knob {
     transition: none;
   }
 }
@@ -1745,8 +1758,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
           className: 'dc-switch',
           'data-on': value ? 'true' : undefined,
           onClick: () => onChange(!value),
-        }, h('span', { className: 'dc-switch-dots', 'aria-hidden': 'true' },
-          [0, 1, 2, 3, 4].map((index) => h('i', { key: index })))),
+        }, h('span', { className: 'dc-switch-knob', 'aria-hidden': 'true' })),
       ])
     }
 

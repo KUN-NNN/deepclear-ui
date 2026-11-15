@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1
+
+- Switches are capsules printed in dots: the 48x28 pill is filled with a dense 4px lattice
+  (2px dots), dim and neutral when off, flooded whale blue when on, with a solid knob
+  sliding over the print.
+
 ## 1.6.0
 
 - Switches are part of the dot language now: a row of five lattice dots instead of a track

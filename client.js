@@ -1514,6 +1514,189 @@ body {
       ])
     }
 
+    /**
+     * Hover dot field for every rows in the sidebar.
+     *
+     * No nodes are injected into host buttons: a single fixed canvas tracks the pointer,
+     * finds the sidebar button under it, and prints a dot field clipped to that button.
+     */
+    function DcSidebarDots() {
+      const canvasRef = React.useRef(null)
+      React.useEffect(() => {
+        const canvas = canvasRef.current
+        if (canvas === null) return
+        const context = canvas.getContext('2d')
+        if (context === null) return
+        const motion = matchMedia('(prefers-reduced-motion: reduce)')
+        const state = {
+          row: null,
+          x: 0,
+          y: 0,
+          inside: false,
+          alpha: 0,
+          frame: 0,
+          live: false,
+          dirty: false,
+        }
+        let stopped = false
+        let dpr = Math.min(2, devicePixelRatio || 1)
+        let rootCache = null
+
+        // Self-calibrating: the sidebar is the lowest ancestor of our own footer button
+        // that also contains the hovered row. Anything further away belongs to another
+        // column, so the depth cap keeps chat and sheets out.
+        const sidebarScopeOf = target => {
+          if (rootCache !== null && !rootCache.isConnected) rootCache = null
+          const anchor = rootCache !== null && rootCache.isConnected
+            ? rootCache
+            : document.querySelector('.dc-foot-button')
+          if (anchor === null) return null
+          let node = anchor
+          for (let depth = 0; depth < 8; depth += 1) {
+            node = node.parentElement
+            if (node === null) return null
+            if (node.contains(target)) {
+              rootCache = anchor
+              return node
+            }
+          }
+          return null
+        }
+
+        const paint = () => {
+          state.frame = 0
+          if (stopped) return
+          const width = innerWidth
+          const height = innerHeight
+          if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+            canvas.width = Math.round(width * dpr)
+            canvas.height = Math.round(height * dpr)
+          }
+          const target = state.inside ? 1 : 0
+          state.alpha = motion.matches ? target : state.alpha + (target - state.alpha) * 0.22
+          context.setTransform(dpr, 0, 0, dpr, 0, 0)
+          context.clearRect(0, 0, width, height)
+          if (!state.inside && state.alpha < 0.02) {
+            state.alpha = 0
+            state.live = false
+            return
+          }
+          if (state.row === null || !state.row.isConnected) {
+            state.inside = false
+            state.live = false
+            return
+          }
+          const rect = state.row.getBoundingClientRect()
+          if (rect.width < 8 || rect.height < 8 || rect.bottom < 0 || rect.top > height) {
+            state.live = false
+            return
+          }
+          const style = getComputedStyle(state.row)
+          const radius = parseFloat(style.borderTopLeftRadius) || 8
+          const accent = (style.getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
+          const reach = 46
+          context.save()
+          context.beginPath()
+          if (typeof context.roundRect === 'function') {
+            context.roundRect(rect.left, rect.top, rect.width, rect.height, radius)
+          } else {
+            context.rect(rect.left, rect.top, rect.width, rect.height)
+          }
+          context.clip()
+          context.fillStyle = accent
+          const startX = Math.floor(rect.left / 4) * 4 + 2
+          const startY = Math.floor(rect.top / 4) * 4 + 2
+          for (let y = startY; y < rect.bottom; y += 4) {
+            for (let x = startX; x < rect.right; x += 4) {
+              const dx = x - state.x
+              const dy = y - state.y
+              const distance = Math.sqrt(dx * dx + dy * dy)
+              if (distance > reach) continue
+              const alpha = Math.pow(1 - distance / reach, 1.6) * state.alpha * 0.72
+              if (alpha < 0.02) continue
+              context.globalAlpha = Math.min(1, alpha)
+              context.beginPath()
+              context.arc(x, y, 0.85, 0, Math.PI * 2)
+              context.fill()
+            }
+          }
+          context.restore()
+          context.globalAlpha = 1
+          const moving = state.dirty
+          state.dirty = false
+          if (motion.matches) {
+            if (!state.inside) {
+              context.clearRect(0, 0, width, height)
+              state.alpha = 0
+            }
+            state.live = false
+            return
+          }
+          if (state.inside && state.alpha >= 0.98 && !moving) {
+            state.live = false
+            return
+          }
+          if (state.inside || state.alpha >= 0.02) {
+            state.frame = requestAnimationFrame(paint)
+          } else {
+            state.live = false
+          }
+        }
+
+        const wake = () => {
+          if (stopped || state.live) return
+          state.live = true
+          if (state.frame === 0) state.frame = requestAnimationFrame(paint)
+        }
+
+        const onMove = event => {
+          const target = event.target instanceof Element
+            ? event.target.closest('button, a, [role="button"]')
+            : null
+          const insideSidebar = target !== null
+            && !target.classList.contains('dc-foot-button')
+            && sidebarScopeOf(target) !== null
+          if (!insideSidebar) {
+            if (state.inside) {
+              state.inside = false
+              state.row = null
+              wake()
+            }
+            return
+          }
+          state.row = target
+          state.x = event.clientX
+          state.y = event.clientY
+          state.inside = true
+          state.dirty = true
+          wake()
+        }
+
+        const onLeave = () => {
+          if (!state.inside) return
+          state.inside = false
+          state.row = null
+          wake()
+        }
+
+        document.addEventListener('pointermove', onMove, { passive: true })
+        document.addEventListener('pointerleave', onLeave)
+        window.addEventListener('blur', onLeave)
+        window.addEventListener('resize', wake)
+        return () => {
+          stopped = true
+          document.removeEventListener('pointermove', onMove)
+          document.removeEventListener('pointerleave', onLeave)
+          window.removeEventListener('blur', onLeave)
+          window.removeEventListener('resize', wake)
+          if (state.frame !== 0) cancelAnimationFrame(state.frame)
+          state.frame = 0
+          state.live = false
+        }
+      }, [])
+      return h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+    }
+
     /* deepclear runtime:start */
     // Profile settings and token layers; embedded into client.js by build-runtime.mjs.
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
@@ -2172,6 +2355,7 @@ body {
         add('sidebar.footer.action', { id: 'deepclear-ui', order: 5, label: () => 'DeepClear UI' }, DcSidebarAction)
         add('conversation.input.right', { id: 'dc-stats', order: 0 }, DcStats)
         add('shell.overlay', { id: 'dc-ambient', order: 5 }, DcOverlay)
+        add('shell.overlay', { id: 'dc-sidebar-dots', order: 6 }, DcSidebarDots)
         // Package name, distinct from the Host entry id even though both currently match.
         add('plugins.bundle.config', { key: 'deepclear-ui' }, DcSettingsPage)
       },

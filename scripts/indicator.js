@@ -17,16 +17,20 @@
         const context = canvas.getContext('2d')
         if (!context) return
         const motion = matchMedia('(prefers-reduced-motion: reduce)')
-        const seen = new WeakMap()
+        // Wall clock anchor. The host may remount its row on every tick, so an element
+        // keyed start time resets constantly; a single anchor survives those remounts
+        // and is dropped as soon as the row leaves the document.
+        const clock = { since: 0 }
         let frame = 0
         let stopped = false
         const clear = () => context.clearRect(0, 0, canvas.width, canvas.height)
 
-        const elapsedOf = (row, label, now) => {
-          const found = /\d+/.exec(label.textContent || '')
-          if (found !== null) return Number(found[0])
-          if (!seen.has(row)) seen.set(row, now)
-          return Math.max(0, Math.round((now - seen.get(row)) / 1000))
+        // The hidden host text cannot be trusted for the clock (its digits are not the
+        // elapsed value), so the label counts wall time from when the running row first
+        // appeared and restarts whenever the row leaves the document.
+        const elapsedOf = (now) => {
+          if (clock.since === 0) clock.since = now
+          return Math.max(0, Math.round((now - clock.since) / 1000))
         }
 
         const drawSphere = (cx, cy, spin, ink) => {
@@ -86,6 +90,8 @@
           const card = document.querySelector('[data-composer-card]')
           const cardTop = card === null ? height : card.getBoundingClientRect().top
           const spin = motion.matches ? 0.35 : now / 1800
+          const running = document.querySelectorAll('[data-chat-running]')
+          if (running.length === 0) clock.since = 0
           let visible = false
           for (const row of document.querySelectorAll('[data-chat-running]:not([data-holding])')) {
             const bounds = row.getBoundingClientRect()
@@ -112,7 +118,7 @@
             visible = true
             if (sphereOn) drawSphere(cx, cy, spin, ink)
             if (labelOn) {
-              const seconds = elapsedOf(row, label, now)
+              const seconds = elapsedOf(now)
               const x = bounds.left + 2 + (sphereOn ? size + 8 : 0)
               drawLabel(row, label, x, cy, seconds, now, ink)
             }

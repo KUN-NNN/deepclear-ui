@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.4
+
+- Fix: the thinking label was stuck at `1s`. The seconds are now counted from the moment the
+  running row appears (the hidden host digits are not the elapsed value), and the anchor
+  restarts whenever the row leaves the document.
+
 ## 1.8.3
 
 - Restored the thinking animation: the dot sphere is drawn again in the host icon's seat and

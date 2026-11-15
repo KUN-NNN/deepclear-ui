@@ -1,6 +1,6 @@
 {
   "name": "deepclear-ui",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "private": false,
   "type": "module",
   "description": "DeepClear UI — a quiet dot-matrix theme for reading, coding and working in dsh.",

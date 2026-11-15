@@ -1274,7 +1274,7 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
   max-height: min(72vh, 640px);
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 20px;
   /* Opaque on purpose: a raised surface layered over the base colour, so the panel is
      always solid and always uses the app's own palette instead of a hand-picked grey. */

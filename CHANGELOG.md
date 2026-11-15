@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.9
+
+- The sidebar sheet drops its outline and keeps only the elevated shadow.
+
 ## 1.5.8
 
 - The dot sphere now measures the host label: with the English label off, it anchors to the

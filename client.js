@@ -2028,7 +2028,12 @@ body {
           context.setTransform(dpr, 0, 0, dpr, 0, 0)
           context.clearRect(0, 0, width, height)
           const card = cardOf()
-          const area = areaOf(card)
+          const inputArea = areaOf(card)
+          if (inputArea === null) {
+            state.live = false
+            return
+          }
+          const area = glyphAreaOf(card, inputArea)
           if (area === null) {
             state.live = false
             return
@@ -2044,7 +2049,6 @@ body {
           const style = getComputedStyle(card)
           const radius = parseFloat(style.borderTopLeftRadius) || 12
           const accent = (style.getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
-          const glyphArea = glyphAreaOf(card, area)
           const elapsed = now - state.started
           const expand = motion.matches ? 1 : Math.min(1, Math.max(0, elapsed / 780))
           const eased = 1 - Math.pow(1 - expand, 3)
@@ -2082,34 +2086,22 @@ body {
             }
           }
 
-          // The input-area clip must go before the word's own clip, or the two
-          // rectangles intersect to nothing and the word never shows.
-          context.restore()
-          if (glyphAlpha > 0.01 && glyphArea !== null) {
-            const glyph = glyphOf(glyphArea)
+          if (glyphAlpha > 0.01) {
+            const glyph = glyphOf(area)
             if (glyph !== null) {
-              // The word lives in its own row, so it gets its own clip.
-              context.save()
-              context.beginPath()
-              if (typeof context.roundRect === 'function') {
-                context.roundRect(glyphArea.left, glyphArea.top, glyphArea.width, glyphArea.height, radius)
-              } else {
-                context.rect(glyphArea.left, glyphArea.top, glyphArea.width, glyphArea.height)
-              }
-              context.clip()
               context.fillStyle = accent
               context.shadowColor = accent
               context.shadowBlur = 6
               for (const dot of glyph.dots) {
                 context.globalAlpha = Math.min(1, glyphAlpha)
                 context.beginPath()
-                context.arc(glyphArea.left + dot.x, glyphArea.top + dot.y, 0.95, 0, Math.PI * 2)
+                context.arc(area.left + dot.x, area.top + dot.y, 0.95, 0, Math.PI * 2)
                 context.fill()
               }
               context.shadowBlur = 0
-              context.restore()
             }
           }
+          context.restore()
           context.globalAlpha = 1
           if (state.active || state.fade >= 0.02) {
             state.frame = requestAnimationFrame(paint)

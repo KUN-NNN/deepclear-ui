@@ -1141,8 +1141,8 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
 .dc-switch {
   position: relative;
   flex: none;
-  width: 40px;
-  height: 24px;
+  width: 46px;
+  height: 26px;
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -1162,18 +1162,18 @@ body[data-ds-dark-theme] [data-diff-line="del"] {
 
 .dc-switch-knob {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
+  top: 4px;
+  left: 4px;
+  width: 24px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: 999px;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dc-switch[data-on] .dc-switch-knob {
-  transform: translateX(16px);
+  transform: translateX(14px);
 }
 
 @media (prefers-reduced-motion: reduce) {

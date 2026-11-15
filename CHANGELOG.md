@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.5
+
+- Settings switches are capsules now: a wider track with a capsule-shaped knob sliding
+  inside it.
+
 ## 1.5.4
 
 - The settings sheet paints from the app's own surface tokens (`--dsw-alias-bg-base` under

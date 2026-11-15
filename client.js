@@ -1974,15 +1974,29 @@ body {
           if (rect.width < 40 || rect.height < 24) return null
           return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
         }
-        // The word lands in the bottom band of the card, where the send row sits.
+        // Stage the band on the send row itself: the tallest button in the card marks it,
+        // so the field never drifts into the card's bottom padding.
         const glyphAreaOf = (card, input) => {
           if (card === null || input === null) return null
           const cardRect = card.getBoundingClientRect()
           if (cardRect.width < 80 || cardRect.height < 60) return null
-          const band = Math.max(30, Math.min(46, cardRect.height * 0.34))
-          const top = cardRect.bottom - band - 3
+          let rowRect = null
+          for (const button of card.querySelectorAll('button')) {
+            const rect = button.getBoundingClientRect()
+            if (rect.width < 16 || rect.height < 16) continue
+            if (rowRect === null || rect.height > rowRect.height) rowRect = rect
+          }
+          if (rowRect === null) {
+            const band = Math.max(30, Math.min(46, cardRect.height * 0.34))
+            rowRect = { top: cardRect.bottom - band - 3, height: band }
+          }
+          const pad = 5
+          const top = Math.max(cardRect.top + 4, rowRect.top - pad)
+          const bottom = Math.min(cardRect.bottom - 2, rowRect.top + rowRect.height + pad)
+          const height = bottom - top
+          if (height < 24) return null
           if (top <= input.top + input.height * 0.5) return null
-          return { left: cardRect.left, top, width: cardRect.width, height: band }
+          return { left: cardRect.left, top, width: cardRect.width, height }
         }
 
         // Sample MAX into the dot grid once per geometry; the glyph never moves.

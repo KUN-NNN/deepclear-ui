@@ -1876,6 +1876,19 @@ body {
               context.fill()
             }
           }
+          // A short whale-blue rail on the left edge marks the hovered control.
+          const railWidth = 3
+          const railInset = 5
+          const railHeight = Math.max(6, rect.height - railInset * 2)
+          const railTop = rect.top + (rect.height - railHeight) / 2
+          context.globalAlpha = Math.min(1, state.alpha * 0.9)
+          context.beginPath()
+          if (typeof context.roundRect === 'function') {
+            context.roundRect(rect.left + 2, railTop, railWidth, railHeight, 1.5)
+          } else {
+            context.rect(rect.left + 2, railTop, railWidth, railHeight)
+          }
+          context.fill()
           context.restore()
           context.globalAlpha = 1
           const moving = state.dirty
@@ -2837,6 +2850,16 @@ body {
               context.fill()
             }
           }
+          const railHeight = Math.max(6, height - 10)
+          const railTop = (height - railHeight) / 2
+          context.globalAlpha = Math.min(1, state.alpha * 0.9)
+          context.beginPath()
+          if (typeof context.roundRect === 'function') {
+            context.roundRect(2, railTop, 3, railHeight, 1.5)
+          } else {
+            context.rect(2, railTop, 3, railHeight)
+          }
+          context.fill()
           context.globalAlpha = 1
           const moving = state.dirty
           state.dirty = false

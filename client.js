@@ -1512,6 +1512,14 @@ body {
     0 0 22px color-mix(in srgb, var(--dc-accent) 18%, transparent);
 }
 
+/* User messages carry a whale-blue halo: a hairline ring plus two soft halos. */
+[data-message-bubble] {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--dc-accent) 52%, transparent),
+    0 0 14px 1px color-mix(in srgb, var(--dc-accent) 22%, transparent),
+    0 0 38px 8px color-mix(in srgb, var(--dc-accent) 10%, transparent);
+}
+
 /* Selected conversation: a flat black plate in dark theme instead of the host's
    translucent hover fill. */
 body[data-ds-dark-theme] [class*="_sessionRow"][class*="_selected"] {

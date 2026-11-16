@@ -866,11 +866,12 @@ const CSS = `
 /* On the blank home the card must be fully opaque: the shipped menu surface is
    slightly translucent, so the wave field behind it would show through the card as
    moving light bands. */
-body:has(canvas.dwe-whale) [data-composer-card] {
+/* The blank home keeps the card solid only when frosting is switched off. */
+:root.dc-off-glass body:has(canvas.dwe-whale) [data-composer-card] {
   background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1));
 }
 
-:root:not(.dc-off-glass) body:not(:has(canvas.dwe-whale)) [data-composer-card] {
+:root:not(.dc-off-glass) [data-composer-card] {
   /* Much more translucent than the host surface, with a stronger blur and a touch of
      saturation: the frosted look only reads if the backdrop is actually visible. */
   background:

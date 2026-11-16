@@ -1497,51 +1497,8 @@ body {
   font-variant-ligatures: none;
   tab-size: 2;
 }
-/* Theme switch: only the few biggest painted surfaces tween, and only background and
-   border colour. Every extra property or extra node is a full repaint on software
-   rendering, which is what made the switch feel heavy. */
-body,
-[data-slot="sidebar"],
-[data-slot="main"],
-[data-slot="rightbar"],
-[data-composer-card] {
-  transition:
-    background-color 180ms cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 180ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body,
-  [data-slot="sidebar"],
-  [data-slot="main"],
-  [data-slot="rightbar"],
-  [data-composer-card] {
-    transition: none;
-  }
-}
-
-/* Sidebar brand: the whale mark and the product name carry a quiet halo so they read as
-   part of the same light as the accent. */
-[data-slot="sidebar.brand.mark"] {
-  filter:
-    drop-shadow(0 0 5px color-mix(in srgb, var(--dc-accent) 50%, transparent))
-    drop-shadow(0 0 16px color-mix(in srgb, var(--dc-accent) 26%, transparent));
-}
-
-[data-slot="sidebar.brand.name"] {
-  text-shadow:
-    0 0 1px color-mix(in srgb, var(--dc-accent) 42%, transparent),
-    0 0 9px color-mix(in srgb, var(--dc-accent) 34%, transparent),
-    0 0 22px color-mix(in srgb, var(--dc-accent) 18%, transparent);
-}
-
 :root:not(.dc-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
   color: var(--dc-accent);
-  /* A soft halo so the accent reads as light rather than paint. */
-  text-shadow:
-    0 0 1px color-mix(in srgb, var(--dc-accent) 55%, transparent),
-    0 0 8px color-mix(in srgb, var(--dc-accent) 42%, transparent),
-    0 0 20px color-mix(in srgb, var(--dc-accent) 22%, transparent);
 }
 :root:not(.dc-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
   opacity: 0;
@@ -1624,17 +1581,45 @@ body,
         }
 
         const drawSphere = (cx, cy, spin, ink) => {
-          context.fillStyle = ink
+          // Two batched passes: a soft halo under a crisp core, so the sphere reads as
+          // light instead of loose dots. Only 42 dots, so buckets are cheap.
+          const points = []
           for (let index = 0; index < 42; index += 1) {
             const v = 1 - (2 * (index + 0.5)) / 42
             const ring = Math.sqrt(1 - v * v)
             const angle = index * 2.39996323 + spin
             const depth = Math.sin(angle) * ring
-            context.globalAlpha = 0.25 + (depth + 1) * 0.32
-            const radius = 0.8 + (depth + 1) * 0.35
-            context.beginPath()
-            context.arc(cx + Math.cos(angle) * ring * 8, cy + v * 8, radius, 0, Math.PI * 2)
-            context.fill()
+            points.push({
+              x: cx + Math.cos(angle) * ring * 8,
+              y: cy + v * 8,
+              alpha: 0.25 + (depth + 1) * 0.32,
+              radius: 0.8 + (depth + 1) * 0.35,
+            })
+          }
+          context.fillStyle = ink
+          const passes = [
+            { grow: 2.1, scale: 0.28 },
+            { grow: 1, scale: 1 },
+          ]
+          for (const pass of passes) {
+            const buckets = new Map()
+            for (const point of points) {
+              const alpha = point.alpha * pass.scale
+              if (alpha < 0.02) continue
+              const level = Math.min(10, Math.max(1, Math.round(alpha * 10)))
+              let bucket = buckets.get(level)
+              if (bucket === undefined) {
+                bucket = new Path2D()
+                buckets.set(level, bucket)
+              }
+              const radius = point.radius * pass.grow
+              bucket.moveTo(point.x + radius, point.y)
+              bucket.arc(point.x, point.y, radius, 0, Math.PI * 2)
+            }
+            for (const [level, path] of buckets) {
+              context.globalAlpha = level / 10
+              context.fill(path)
+            }
           }
           context.globalAlpha = 1
         }

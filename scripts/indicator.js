@@ -34,17 +34,45 @@
         }
 
         const drawSphere = (cx, cy, spin, ink) => {
-          context.fillStyle = ink
+          // Two batched passes: a soft halo under a crisp core, so the sphere reads as
+          // light instead of loose dots. Only 42 dots, so buckets are cheap.
+          const points = []
           for (let index = 0; index < 42; index += 1) {
             const v = 1 - (2 * (index + 0.5)) / 42
             const ring = Math.sqrt(1 - v * v)
             const angle = index * 2.39996323 + spin
             const depth = Math.sin(angle) * ring
-            context.globalAlpha = 0.25 + (depth + 1) * 0.32
-            const radius = 0.8 + (depth + 1) * 0.35
-            context.beginPath()
-            context.arc(cx + Math.cos(angle) * ring * 8, cy + v * 8, radius, 0, Math.PI * 2)
-            context.fill()
+            points.push({
+              x: cx + Math.cos(angle) * ring * 8,
+              y: cy + v * 8,
+              alpha: 0.25 + (depth + 1) * 0.32,
+              radius: 0.8 + (depth + 1) * 0.35,
+            })
+          }
+          context.fillStyle = ink
+          const passes = [
+            { grow: 2.1, scale: 0.28 },
+            { grow: 1, scale: 1 },
+          ]
+          for (const pass of passes) {
+            const buckets = new Map()
+            for (const point of points) {
+              const alpha = point.alpha * pass.scale
+              if (alpha < 0.02) continue
+              const level = Math.min(10, Math.max(1, Math.round(alpha * 10)))
+              let bucket = buckets.get(level)
+              if (bucket === undefined) {
+                bucket = new Path2D()
+                buckets.set(level, bucket)
+              }
+              const radius = point.radius * pass.grow
+              bucket.moveTo(point.x + radius, point.y)
+              bucket.arc(point.x, point.y, radius, 0, Math.PI * 2)
+            }
+            for (const [level, path] of buckets) {
+              context.globalAlpha = level / 10
+              context.fill(path)
+            }
           }
           context.globalAlpha = 1
         }

@@ -1487,6 +1487,21 @@ body {
   font-variant-ligatures: none;
   tab-size: 2;
 }
+/* Sidebar brand: the whale mark and the product name carry a quiet halo so they read as
+   part of the same light as the accent. */
+[data-slot="sidebar.brand.mark"] {
+  filter:
+    drop-shadow(0 0 5px color-mix(in srgb, var(--dc-accent) 50%, transparent))
+    drop-shadow(0 0 16px color-mix(in srgb, var(--dc-accent) 26%, transparent));
+}
+
+[data-slot="sidebar.brand.name"] {
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--dc-accent) 42%, transparent),
+    0 0 9px color-mix(in srgb, var(--dc-accent) 34%, transparent),
+    0 0 22px color-mix(in srgb, var(--dc-accent) 18%, transparent);
+}
+
 :root:not(.dc-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
   color: var(--dc-accent);
   /* A soft halo so the accent reads as light rather than paint. */

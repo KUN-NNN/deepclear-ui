@@ -2678,7 +2678,7 @@ body {
       }
       const zh = dcUsesChinese()
       const status = settings.error
-        ? (zh ? '保存未完成，请重试。配置冲突时已读取最新设置。' : 'Could not save. The latest settings have been reloaded after a conflict.')
+        ? (zh ? '保存未完成。如果刚更新过插件，请完整退出 DSH 重启后再试。' : 'Could not save. If you just updated the plugin, quit and reopen DSH, then try again.')
         : settings.status === 'loading' ? (zh ? '正在读取主题设置…' : 'Loading theme preferences…')
         : settings.status !== 'ready' ? (zh ? '此宿主暂未提供主题设置。' : 'Theme preferences are unavailable on this host.')
         : !settings.writable ? (zh ? '此配置只读。' : 'These preferences are read-only.')

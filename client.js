@@ -1497,23 +1497,33 @@ body {
   font-variant-ligatures: none;
   tab-size: 2;
 }
-/* Theme switch: colours glide for a moment instead of snapping between palettes. */
-html.dc-theme-fade,
-html.dc-theme-fade *:not(script):not(style) {
+/* Theme switch: the large surfaces glide between palettes. Only a handful of painted
+   containers animate — transitioning every node in the tree stalled the switch. */
+html.dc-theme-fade body,
+html.dc-theme-fade [data-slot="sidebar"],
+html.dc-theme-fade [data-slot="main"],
+html.dc-theme-fade [data-slot="rightbar"],
+html.dc-theme-fade [data-slot="settings"],
+html.dc-theme-fade [data-slot="conversation"],
+html.dc-theme-fade [data-slot="conversation.content"],
+html.dc-theme-fade [data-slot="conversation.hero.frame"],
+html.dc-theme-fade [data-composer-card],
+html.dc-theme-fade [data-slot="sidebar"] *,
+html.dc-theme-fade [data-slot="main"] * {
   transition:
-    background-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
-    color 320ms cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
-    outline-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
-    fill 320ms cubic-bezier(0.4, 0, 0.2, 1),
-    stroke 320ms cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 320ms cubic-bezier(0.4, 0, 0.2, 1),
-    text-shadow 320ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+html.dc-theme-fade body,
+html.dc-theme-fade [data-slot="sidebar"] *,
+html.dc-theme-fade [data-slot="main"] * {
+  transition-property: background-color, border-color, color;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.dc-theme-fade,
-  html.dc-theme-fade *:not(script):not(:style) {
+  html.dc-theme-fade body,
+  html.dc-theme-fade [data-slot] {
     transition: none !important;
   }
 }

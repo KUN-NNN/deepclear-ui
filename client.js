@@ -1497,23 +1497,17 @@ body {
   font-variant-ligatures: none;
   tab-size: 2;
 }
-/* Theme switch: the painted containers carry a permanent colour transition, so flipping
-   the palette glides instead of snapping. Deliberately scoped — transitioning every node
-   stalled the switch, and a class added in the same frame as the flip never animates. */
+/* Theme switch: only the few biggest painted surfaces tween, and only background and
+   border colour. Every extra property or extra node is a full repaint on software
+   rendering, which is what made the switch feel heavy. */
 body,
 [data-slot="sidebar"],
 [data-slot="main"],
 [data-slot="rightbar"],
-[data-slot="conversation"],
-[data-slot="conversation.content"],
-[data-slot="settings"],
-[data-composer-card],
-[data-slot="sidebar"] > *,
-[data-slot="main"] > * {
+[data-composer-card] {
   transition:
-    background-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
-    color 320ms cubic-bezier(0.4, 0, 0.2, 1);
+    background-color 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1521,7 +1515,6 @@ body,
   [data-slot="sidebar"],
   [data-slot="main"],
   [data-slot="rightbar"],
-  [data-slot="conversation"],
   [data-composer-card] {
     transition: none;
   }

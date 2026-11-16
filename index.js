@@ -3,7 +3,7 @@ import Schema from '@deepseek-ai/schemastery'
 /** Profile-owned preferences. Volatile fields update without restarting the UI. */
 export const Config = Schema.object(Object.fromEntries([
   'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
-  'glass', 'effortBadge', 'bold', 'focusRing', 'diff',
+  'glass', 'effortBadge', 'sidebarDots', 'sidebarRail', 'bold', 'focusRing', 'diff',
   'reading', 'code',
 ].map(key => [key, Schema.boolean().default(true).volatile()]).concat([
   ['settingsMigrated', Schema.boolean().default(false).volatile().hidden()],

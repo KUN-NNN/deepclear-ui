@@ -1778,6 +1778,9 @@ body {
      */
     function DcSidebarDots() {
       const canvasRef = React.useRef(null)
+      const { values } = useDcSettings()
+      const showDots = values.sidebarDots !== false
+      const showRail = values.sidebarRail !== false
       React.useEffect(() => {
         const canvas = canvasRef.current
         if (canvas === null) return
@@ -1865,6 +1868,7 @@ body {
           }
           context.clip()
           context.fillStyle = accent
+          if (showDots) {
           const startX = Math.floor(rect.left / 4) * 4 + 2
           const startY = Math.floor(rect.top / 4) * 4 + 2
           for (let y = startY; y < rect.bottom; y += 4) {
@@ -1881,8 +1885,9 @@ body {
               context.fill()
             }
           }
+          }
           // A short whale-blue rail marks the hovered control — buttons only.
-          if (state.rail) {
+          if (state.rail && showRail) {
             const railWidth = 3
             const railInset = 5
             const railHeight = Math.max(6, rect.height - railInset * 2)
@@ -1972,8 +1977,10 @@ body {
           state.frame = 0
           state.live = false
         }
-      }, [])
-      return h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+      }, [showDots, showRail])
+      return showDots || showRail
+        ? h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+        : null
     }
 
     /**
@@ -2323,7 +2330,7 @@ body {
     const DC_SETTINGS_KEY = 'deepclear-ui:settings'
     const DC_DEFAULT_SETTINGS = Object.freeze(Object.fromEntries([
       'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
-      'glass', 'effortBadge', 'bold', 'focusRing', 'diff',
+      'glass', 'effortBadge', 'sidebarDots', 'sidebarRail', 'bold', 'focusRing', 'diff',
       'reading', 'code',
     ].map(key => [key, true])))
     const DC_OFF_CLASS = Object.freeze(Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)
@@ -2514,6 +2521,7 @@ body {
           thinking: '\u601d\u8003\u4e2d',
           composer: '\u8f93\u5165\u6846',
           accents: '\u5f3a\u8c03\u8272',
+          sidebar: '侧边栏',
         },
         items: {
           hero: ['\u70b9\u9635\u4eba\u50cf\u4e0e\u5b57\u6807', '\u7a7a\u767d\u6b22\u8fce\u9875\u4e0a\u7684\u7acb\u7ed8\u548c\u5b57\u6807'],
@@ -2535,7 +2543,7 @@ body {
       },
       en: {
         lead: 'Everything here applies immediately and is remembered per profile.',
-        groups: { hero: 'Welcome page', thinking: 'Thinking', composer: 'Composer', accents: 'Accents' },
+        groups: { hero: 'Welcome page', thinking: 'Thinking', composer: 'Composer', accents: 'Accents', sidebar: 'Sidebar' },
         items: {
           hero: ['Dot artwork', 'The portrait and the wordmark on the blank home'],
           field: ['Dot field', 'The faint lattice behind everything'],
@@ -2559,6 +2567,8 @@ body {
       reading: ['阅读排版', '舒展段落、标题与引用，保留你的字号'],
       code: ['代码配色', '低饱和语法颜色，保持代码层次'],
       effortBadge: ['推理等级动画', '输入框里用点阵显示当前推理等级'],
+      sidebarDots: ['悬停点阵', '鼠标悬停在侧边栏按钮上时亮起点阵'],
+      sidebarRail: ['蓝色竖线', '在悬停按钮左侧显示鲸鱼蓝竖线'],
       thinkingLabel: ['英文思考文案', '把状态行换成 “Deep thinking for 12s. . .”'],
       diff: ['差异配色', '新增用蓝色，删除用暖色，保留语法高亮'],
     })
@@ -2566,6 +2576,8 @@ body {
       reading: ['Reading layout', 'Clear paragraphs, headings and quotes at your chosen font size'],
       code: ['Code palette', 'Muted, distinct syntax colours'],
       effortBadge: ['Effort badge', 'Print the reasoning level in dots inside the composer'],
+      sidebarDots: ['Hover dot field', 'Light the dot field around the pointer on sidebar buttons'],
+      sidebarRail: ['Blue rail', 'Show a whale-blue rail on the left of the hovered button'],
       thinkingLabel: ['English status label', 'Replace the status row with “Deep thinking for 12s. . .”'],
       diff: ['Diff palette', 'Blue additions and warm deletions, with syntax highlighting intact'],
     })
@@ -2683,6 +2695,9 @@ body {
         ]),
         group(copy.groups.composer, [
           item('glass'), item('effortBadge'),
+        ]),
+        group(copy.groups.sidebar, [
+          item('sidebarDots'), item('sidebarRail'),
         ]),
         group(copy.groups.accents, [
           item('bold'), item('focusRing'), item('diff'),
@@ -2804,8 +2819,12 @@ body {
      */
     function DcSidebarAction({ wide }) {
       const open = useDcSheet()
+      const { values } = useDcSettings()
+      const showDots = values.sidebarDots !== false
+      const showRail = values.sidebarRail !== false
       const canvasRef = React.useRef(null)
       React.useEffect(() => {
+        if (!showDots && !showRail) return
         const canvas = canvasRef.current
         if (canvas === null) return
         const context = canvas.getContext('2d')
@@ -2846,7 +2865,7 @@ body {
           const radius = 64
           const accent = (getComputedStyle(button).getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
           context.fillStyle = accent
-          for (let y = 3; y < height; y += 4) {
+          if (showDots) for (let y = 3; y < height; y += 4) {
             for (let x = 3; x < width; x += 4) {
               const dx = x - state.x
               const dy = y - state.y
@@ -2860,17 +2879,19 @@ body {
               context.fill()
             }
           }
-          const railHeight = Math.max(6, height - 10)
-          const railTop = (height - railHeight) / 2
-          context.globalAlpha = Math.min(1, state.alpha * 0.9)
-          context.beginPath()
-          if (typeof context.roundRect === 'function') {
-            context.roundRect(2, railTop, 3, railHeight, 1.5)
-          } else {
-            context.rect(2, railTop, 3, railHeight)
+          if (showRail) {
+            const railHeight = Math.max(6, height - 10)
+            const railTop = (height - railHeight) / 2
+            context.globalAlpha = Math.min(1, state.alpha * 0.9)
+            context.beginPath()
+            if (typeof context.roundRect === 'function') {
+              context.roundRect(2, railTop, 3, railHeight, 1.5)
+            } else {
+              context.rect(2, railTop, 3, railHeight)
+            }
+            context.fill()
+            context.globalAlpha = 1
           }
-          context.fill()
-          context.globalAlpha = 1
           const moving = state.dirty
           state.dirty = false
           if (motion.matches) {
@@ -2931,7 +2952,7 @@ body {
           state.frame = 0
           state.live = false
         }
-      }, [])
+      }, [showDots, showRail])
       return h('div', { className: 'dc-foot' }, [
         h('button', {
           key: 'button',
@@ -2941,7 +2962,9 @@ body {
           'aria-label': dcUsesChinese() ? DC_COPY.zh.button : DC_COPY.en.button,
           onClick: () => dcSetSheetOpen(!dcSheetOpen),
         }, [
-          h('canvas', { key: 'dots', ref: canvasRef, className: 'dc-foot-dots', 'aria-hidden': 'true' }),
+          showDots || showRail
+            ? h('canvas', { key: 'dots', ref: canvasRef, className: 'dc-foot-dots', 'aria-hidden': 'true' })
+            : null,
           h(DcSettingsIcon, { key: 'icon', size: 16, active: open }),
           wide ? h('span', { key: 'label', className: 'dc-foot-label' }, 'DeepClear UI') : null,
         ]),

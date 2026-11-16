@@ -894,15 +894,19 @@ body[data-ds-dark-theme] {
   box-shadow:
     var(--dsw-elevation-soft),
     inset 0 0 0 1px rgba(var(--dc-focus-ink), 0),
-    0 0 0 0 rgba(var(--dc-focus-ink), 0);
+    0 0 0 0 rgba(var(--dc-focus-ink), 0),
+    0 0 12px 0 rgba(var(--dc-focus-ink), 0),
+    0 0 32px 2px rgba(var(--dc-focus-ink), 0);
   transition: box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 :root:not(.dc-off-focusring) [data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
   box-shadow:
     var(--dsw-elevation-soft),
-    inset 0 0 0 1.2px rgba(var(--dc-focus-ink), 0.9),
-    0 0 0 3px rgba(var(--dc-focus-ink), 0.1);
+    inset 0 0 0 1.2px rgba(var(--dc-focus-ink), 0.92),
+    0 0 0 3px rgba(var(--dc-focus-ink), 0.12),
+    0 0 14px 1px rgba(var(--dc-focus-ink), 0.22),
+    0 0 40px 6px rgba(var(--dc-focus-ink), 0.1);
 }
 
 /* --------------------------------------------------- frame-wide ambient layer */

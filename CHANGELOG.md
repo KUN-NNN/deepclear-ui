@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.9.4
+
+### Sidebar
+
+- Every sidebar button now lights a dot field around the pointer and carries a whale-blue
+  rail on its left edge, both switchable in a new "Sidebar" group (`sidebarDots`,
+  `sidebarRail`).
+- The hover effects are scoped to the sidebar column: chat, composer and sheet buttons no
+  longer light up.
+- The selected conversation is a deep grey plate instead of the host's translucent fill.
+- The sidebar brand (whale mark and product name) carries a quiet halo.
+
+### Composer
+
+- The frosted glass is noticeably more transparent (54%), so the page behind reads through.
+- The focus ring gains a soft halo.
+
+### Chat
+
+- User message bubbles get a whale-blue ring with two soft halos.
+- Whale-blue bold prose glows faintly.
+
+### Thinking
+
+- The dot sphere and the effort word both carry a halo.
+
 ## 1.9.3
 
 ### Startup

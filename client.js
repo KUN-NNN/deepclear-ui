@@ -1497,8 +1497,38 @@ body {
   font-variant-ligatures: none;
   tab-size: 2;
 }
+/* Sidebar brand: the whale mark and the product name carry a quiet halo so they read as
+   part of the same light as the accent. */
+[data-slot="sidebar.brand.mark"] {
+  filter:
+    drop-shadow(0 0 5px color-mix(in srgb, var(--dc-accent) 50%, transparent))
+    drop-shadow(0 0 16px color-mix(in srgb, var(--dc-accent) 26%, transparent));
+}
+
+[data-slot="sidebar.brand.name"] {
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--dc-accent) 42%, transparent),
+    0 0 9px color-mix(in srgb, var(--dc-accent) 34%, transparent),
+    0 0 22px color-mix(in srgb, var(--dc-accent) 18%, transparent);
+}
+
+/* Selected conversation: a flat black plate in dark theme instead of the host's
+   translucent hover fill. */
+body[data-ds-dark-theme] [class*="_sessionRow"][class*="_selected"] {
+  background-color: #000000;
+}
+
+body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
+  background-color: #e9e9ec;
+}
+
 :root:not(.dc-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
   color: var(--dc-accent);
+  /* A soft halo so the accent reads as light rather than paint. */
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--dc-accent) 55%, transparent),
+    0 0 8px color-mix(in srgb, var(--dc-accent) 42%, transparent),
+    0 0 20px color-mix(in srgb, var(--dc-accent) 22%, transparent);
 }
 :root:not(.dc-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
   opacity: 0;

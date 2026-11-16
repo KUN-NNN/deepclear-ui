@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2
+
+- New storefront preview: the README and the marketplace detail page show the current
+  welcome page (dot wordmark, portrait, composer) instead of the first screenshot.
+
 ## 1.3.1
 
 Consolidates everything shipped since 1.2.0. The intermediate 1.3.0–1.9.4 versions were

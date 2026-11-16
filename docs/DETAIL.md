@@ -1,6 +1,6 @@
 # DeepClear UI
 
-![点阵欢迎页](preview.png)
+![点阵欢迎页](preview.jpg)
 
 点阵保持原来的秩序，让阅读、输入和代码也有一致的细节。
 

@@ -1,6 +1,6 @@
 # DeepClear UI
 
-![DeepClear UI: the deepseek / harness dot-matrix wordmark on the left and the mascot portrait on the right](docs/preview.png)
+![DeepClear UI: the deepseek / harness dot-matrix wordmark on the left and the mascot portrait on the right](docs/preview.jpg)
 
 A dot-matrix welcome page, a dot-printed reasoning badge and quieter chrome for the
 DeepSeek Harness web UI. One bundle — a patch row, a client half and locale metadata. No

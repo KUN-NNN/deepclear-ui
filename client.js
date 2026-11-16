@@ -1497,6 +1497,27 @@ body {
   font-variant-ligatures: none;
   tab-size: 2;
 }
+/* Theme switch: colours glide for a moment instead of snapping between palettes. */
+html.dc-theme-fade,
+html.dc-theme-fade *:not(script):not(style) {
+  transition:
+    background-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    outline-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    fill 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    text-shadow 320ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.dc-theme-fade,
+  html.dc-theme-fade *:not(script):not(:style) {
+    transition: none !important;
+  }
+}
+
 /* Sidebar brand: the whale mark and the product name carry a quiet halo so they read as
    part of the same light as the accent. */
 [data-slot="sidebar.brand.mark"] {
@@ -2961,6 +2982,29 @@ body {
             }
           }
         }, 'deepclear-ui: effort badge')
+        // Theme switch fade: body's theme attribute flips instantly, so for a moment we let
+        // every colour transition instead of swapping palettes in one frame.
+        ctx.effect(() => {
+          if (matchMedia('(prefers-reduced-motion: reduce)').matches) return () => {}
+          let last = document.body.hasAttribute('data-ds-dark-theme')
+          let timer = 0
+          const observer = new MutationObserver(() => {
+            const next = document.body.hasAttribute('data-ds-dark-theme')
+            if (next === last) return
+            last = next
+            const root = document.documentElement
+            root.classList.add('dc-theme-fade')
+            window.clearTimeout(timer)
+            timer = window.setTimeout(() => root.classList.remove('dc-theme-fade'), 360)
+          })
+          observer.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
+          return () => {
+            observer.disconnect()
+            window.clearTimeout(timer)
+            document.documentElement.classList.remove('dc-theme-fade')
+          }
+        }, 'deepclear-ui: theme fade')
+
         // Fresh conversation on every launch. The service may not be reachable the first
         // moment the shell is up, so retry for a few seconds and leave a manual trigger.
         ctx.inject(['uiWorkspace'], scope => {

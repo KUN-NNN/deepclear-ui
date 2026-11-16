@@ -871,9 +871,11 @@ body:has(canvas.dwe-whale) [data-composer-card] {
 }
 
 :root:not(.dc-off-glass) body:not(:has(canvas.dwe-whale)) [data-composer-card] {
-  background: color-mix(in srgb, var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1)) 92%, transparent);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  /* Much more translucent than the host surface, with a stronger blur and a touch of
+     saturation: the frosted look only reads if the backdrop is actually visible. */
+  background: color-mix(in srgb, var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1)) 72%, transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(1.25);
+  backdrop-filter: blur(26px) saturate(1.25);
 }
 
 /* Composer focus: a soft whale-blue ring fades in under the card's own hairline

@@ -97,6 +97,17 @@ npm i deepclear-ui
 
 Or install it by name from the dsh Plugins panel.
 
+### Marketplace
+
+The plugin is being added to the community catalog. Until that listing is live you can add
+this package's own index source so it shows up in **Plugins -> Discover**:
+
+```
+https://raw.githubusercontent.com/KUN-NNN/deepclear-ui/main/market/index.json
+```
+
+Add source, search `deepclear`, install.
+
 ## Customize
 
 Swapping the artwork, painting a mask, or editing the dot grid directly is documented in

@@ -873,7 +873,14 @@ body:has(canvas.dwe-whale) [data-composer-card] {
 :root:not(.dc-off-glass) body:not(:has(canvas.dwe-whale)) [data-composer-card] {
   /* Much more translucent than the host surface, with a stronger blur and a touch of
      saturation: the frosted look only reads if the backdrop is actually visible. */
-  background: color-mix(in srgb, var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1)) 72%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--dsw-alias-label-primary) 7%, transparent),
+      color-mix(in srgb, var(--dsw-alias-label-primary) 2%, transparent) 42%,
+      transparent
+    ),
+    color-mix(in srgb, var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1)) 70%, transparent);
   -webkit-backdrop-filter: blur(26px) saturate(1.25);
   backdrop-filter: blur(26px) saturate(1.25);
 }

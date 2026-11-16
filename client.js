@@ -881,7 +881,7 @@ const CSS = `
       color-mix(in srgb, var(--dsw-alias-label-primary) 2%, transparent) 42%,
       transparent
     ),
-    color-mix(in srgb, var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1)) 70%, transparent);
+    color-mix(in srgb, var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1)) 54%, transparent);
   -webkit-backdrop-filter: blur(26px) saturate(1.25);
   backdrop-filter: blur(26px) saturate(1.25);
 }

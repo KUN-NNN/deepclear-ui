@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3
+
+- The storefront preview is the English UI screenshot.
+
 ## 1.3.2
 
 - New storefront preview: the README and the marketplace detail page show the current

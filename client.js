@@ -2087,18 +2087,40 @@ body {
             }
             context.clip()
           }
-          context.fillStyle = accent
+          // Collect every dot once, then paint a soft halo pass and a crisp pass in
+          // batches: per-dot fills with shadows would crawl.
+          const dots = []
           for (const point of trail) {
             const age = (now - point.born) / LIFE
             if (age >= 1) continue
             const alpha = Math.pow(1 - age, 1.4) * 0.85
             if (alpha < 0.02) continue
-            // Fill the whole caret: a vertical column of dots, not a single point.
-            context.globalAlpha = alpha
             for (let offset = 1; offset < point.height - 0.5; offset += 3) {
-              context.beginPath()
-              context.arc(point.x, point.y + offset, 1.05, 0, Math.PI * 2)
-              context.fill()
+              dots.push(point.x, point.y + offset, alpha)
+            }
+          }
+          context.fillStyle = accent
+          const passes = [
+            { radius: 2.4, scale: 0.3 },
+            { radius: 1.05, scale: 1 },
+          ]
+          for (const pass of passes) {
+            const buckets = new Map()
+            for (let index = 0; index < dots.length; index += 3) {
+              const alpha = dots[index + 2] * pass.scale
+              if (alpha < 0.02) continue
+              const level = Math.min(10, Math.max(1, Math.round(alpha * 10)))
+              let bucket = buckets.get(level)
+              if (bucket === undefined) {
+                bucket = new Path2D()
+                buckets.set(level, bucket)
+              }
+              bucket.moveTo(dots[index] + pass.radius, dots[index + 1])
+              bucket.arc(dots[index], dots[index + 1], pass.radius, 0, Math.PI * 2)
+            }
+            for (const [level, path] of buckets) {
+              context.globalAlpha = level / 10
+              context.fill(path)
             }
           }
           context.restore()

@@ -1789,6 +1789,7 @@ body {
           x: 0,
           y: 0,
           inside: false,
+          rail: false,
           alpha: 0,
           frame: 0,
           live: false,
@@ -1876,19 +1877,21 @@ body {
               context.fill()
             }
           }
-          // A short whale-blue rail on the left edge marks the hovered control.
-          const railWidth = 3
-          const railInset = 5
-          const railHeight = Math.max(6, rect.height - railInset * 2)
-          const railTop = rect.top + (rect.height - railHeight) / 2
-          context.globalAlpha = Math.min(1, state.alpha * 0.9)
-          context.beginPath()
-          if (typeof context.roundRect === 'function') {
-            context.roundRect(rect.left + 2, railTop, railWidth, railHeight, 1.5)
-          } else {
-            context.rect(rect.left + 2, railTop, railWidth, railHeight)
+          // A short whale-blue rail marks the hovered control — buttons only.
+          if (state.rail) {
+            const railWidth = 3
+            const railInset = 5
+            const railHeight = Math.max(6, rect.height - railInset * 2)
+            const railTop = rect.top + (rect.height - railHeight) / 2
+            context.globalAlpha = Math.min(1, state.alpha * 0.9)
+            context.beginPath()
+            if (typeof context.roundRect === 'function') {
+              context.roundRect(rect.left + 2, railTop, railWidth, railHeight, 1.5)
+            } else {
+              context.rect(rect.left + 2, railTop, railWidth, railHeight)
+            }
+            context.fill()
           }
-          context.fill()
           context.restore()
           context.globalAlpha = 1
           const moving = state.dirty
@@ -1934,6 +1937,7 @@ body {
             return
           }
           state.row = target
+          state.rail = target.matches('button')
           state.x = event.clientX
           state.y = event.clientY
           state.inside = true

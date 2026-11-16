@@ -1515,7 +1515,7 @@ body {
 /* Selected conversation: a flat black plate in dark theme instead of the host's
    translucent hover fill. */
 body[data-ds-dark-theme] [class*="_sessionRow"][class*="_selected"] {
-  background-color: #000000;
+  background-color: #0d0d10;
 }
 
 body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {

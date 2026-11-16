@@ -1497,34 +1497,33 @@ body {
   font-variant-ligatures: none;
   tab-size: 2;
 }
-/* Theme switch: the large surfaces glide between palettes. Only a handful of painted
-   containers animate — transitioning every node in the tree stalled the switch. */
-html.dc-theme-fade body,
-html.dc-theme-fade [data-slot="sidebar"],
-html.dc-theme-fade [data-slot="main"],
-html.dc-theme-fade [data-slot="rightbar"],
-html.dc-theme-fade [data-slot="settings"],
-html.dc-theme-fade [data-slot="conversation"],
-html.dc-theme-fade [data-slot="conversation.content"],
-html.dc-theme-fade [data-slot="conversation.hero.frame"],
-html.dc-theme-fade [data-composer-card],
-html.dc-theme-fade [data-slot="sidebar"] *,
-html.dc-theme-fade [data-slot="main"] * {
+/* Theme switch: the painted containers carry a permanent colour transition, so flipping
+   the palette glides instead of snapping. Deliberately scoped — transitioning every node
+   stalled the switch, and a class added in the same frame as the flip never animates. */
+body,
+[data-slot="sidebar"],
+[data-slot="main"],
+[data-slot="rightbar"],
+[data-slot="conversation"],
+[data-slot="conversation.content"],
+[data-slot="settings"],
+[data-composer-card],
+[data-slot="sidebar"] > *,
+[data-slot="main"] > * {
   transition:
-    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-html.dc-theme-fade body,
-html.dc-theme-fade [data-slot="sidebar"] *,
-html.dc-theme-fade [data-slot="main"] * {
-  transition-property: background-color, border-color, color;
+    background-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 320ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.dc-theme-fade body,
-  html.dc-theme-fade [data-slot] {
-    transition: none !important;
+  body,
+  [data-slot="sidebar"],
+  [data-slot="main"],
+  [data-slot="rightbar"],
+  [data-slot="conversation"],
+  [data-composer-card] {
+    transition: none;
   }
 }
 
@@ -2992,29 +2991,6 @@ html.dc-theme-fade [data-slot="main"] * {
             }
           }
         }, 'deepclear-ui: effort badge')
-        // Theme switch fade: body's theme attribute flips instantly, so for a moment we let
-        // every colour transition instead of swapping palettes in one frame.
-        ctx.effect(() => {
-          if (matchMedia('(prefers-reduced-motion: reduce)').matches) return () => {}
-          let last = document.body.hasAttribute('data-ds-dark-theme')
-          let timer = 0
-          const observer = new MutationObserver(() => {
-            const next = document.body.hasAttribute('data-ds-dark-theme')
-            if (next === last) return
-            last = next
-            const root = document.documentElement
-            root.classList.add('dc-theme-fade')
-            window.clearTimeout(timer)
-            timer = window.setTimeout(() => root.classList.remove('dc-theme-fade'), 360)
-          })
-          observer.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
-          return () => {
-            observer.disconnect()
-            window.clearTimeout(timer)
-            document.documentElement.classList.remove('dc-theme-fade')
-          }
-        }, 'deepclear-ui: theme fade')
-
         // Fresh conversation on every launch. The service may not be reachable the first
         // moment the shell is up, so retry for a few seconds and leave a manual trigger.
         ctx.inject(['uiWorkspace'], scope => {

@@ -1020,6 +1020,10 @@ body:not([data-ds-dark-theme]) {
   background-clip: text;
   color: transparent;
   opacity: 0;
+  /* The shadow follows the dot alpha, so the word carries a soft halo. */
+  filter:
+    drop-shadow(0 0 5px rgba(255, 255, 255, 0.4))
+    drop-shadow(0 0 16px rgba(255, 255, 255, 0.2));
   animation: dc-effort-word 620ms 740ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
@@ -1029,6 +1033,9 @@ body:not([data-ds-dark-theme]) {
     var(--dc-accent) 0.95px,
     transparent 1.15px
   );
+  filter:
+    drop-shadow(0 0 6px rgba(122, 170, 255, 0.75))
+    drop-shadow(0 0 20px rgba(122, 170, 255, 0.45));
 }
 
 body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {

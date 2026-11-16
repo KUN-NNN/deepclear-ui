@@ -1489,6 +1489,11 @@ body {
 }
 :root:not(.dc-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
   color: var(--dc-accent);
+  /* A soft halo so the accent reads as light rather than paint. */
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--dc-accent) 55%, transparent),
+    0 0 8px color-mix(in srgb, var(--dc-accent) 42%, transparent),
+    0 0 20px color-mix(in srgb, var(--dc-accent) 22%, transparent);
 }
 :root:not(.dc-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
   opacity: 0;

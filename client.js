@@ -1799,25 +1799,29 @@ body {
         let dpr = Math.min(2, devicePixelRatio || 1)
         let rootCache = null
 
-        // Self-calibrating: the sidebar is the lowest ancestor of our own footer button
-        // that also contains the hovered row. Anything further away belongs to another
-        // column, so the depth cap keeps chat and sheets out.
-        const sidebarScopeOf = target => {
-          if (rootCache !== null && !rootCache.isConnected) rootCache = null
-          const anchor = rootCache !== null && rootCache.isConnected
-            ? rootCache
-            : document.querySelector('.dc-foot-button')
-          if (anchor === null) return null
-          let node = anchor
-          for (let depth = 0; depth < 8; depth += 1) {
+        // The sidebar column itself is the scope: walk up from our footer button to the
+        // column landmark, once, and only light controls inside it. A lowest-common-ancestor
+        // guess leaked into the chat column and put rails on every button in the app.
+        const sidebarScope = () => {
+          if (rootCache !== null && rootCache.isConnected) return rootCache
+          const foot = document.querySelector('.dc-foot-button')
+          if (foot === null) return null
+          let node = foot
+          for (let depth = 0; depth < 10; depth += 1) {
             node = node.parentElement
-            if (node === null) return null
-            if (node.contains(target)) {
-              rootCache = anchor
+            if (node === null) break
+            if (node.matches('aside, [data-slot="sidebar"], [data-sidebar], [role="navigation"]')) {
+              rootCache = node
               return node
             }
           }
-          return null
+          // No landmark: take the column wrapper a few levels up as a best effort.
+          let fallback = foot
+          for (let depth = 0; depth < 5 && fallback.parentElement !== null; depth += 1) {
+            fallback = fallback.parentElement
+          }
+          rootCache = fallback
+          return fallback
         }
 
         const paint = () => {
@@ -1925,9 +1929,11 @@ body {
           const target = event.target instanceof Element
             ? event.target.closest('button, a, [role="button"]')
             : null
+          const scope = sidebarScope()
           const insideSidebar = target !== null
-            && !target.classList.contains('dc-foot-button')
-            && sidebarScopeOf(target) !== null
+            && scope !== null
+            && scope.contains(target)
+            && !target.closest('.dc-foot')
           if (!insideSidebar) {
             if (state.inside) {
               state.inside = false
